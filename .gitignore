@@ -1,0 +1,18 @@
+# Python & Môi trường ảo
+__pycache__/
+*.py[cod]
+.env
+venv/
+env/
+
+# Dữ liệu & Trọng số Deep Learning 
+backend_ai/data/
+*.sgf
+backend_ai/weights/
+*.pth
+*.pt
+
+# IDE và OS files
+.vscode/
+.DS_Store
+Thumbs.db
