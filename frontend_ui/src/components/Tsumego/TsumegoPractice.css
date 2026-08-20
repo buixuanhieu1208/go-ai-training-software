@@ -1,0 +1,126 @@
+/* src/components/Tsumego/TsumegoPractice.css */
+
+.tsumego-practice {
+  display: flex;
+  gap: var(--space-lg);
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.tsumego-practice--loading {
+  padding: var(--space-xl);
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.tsumego-practice__board {
+  display: flex;
+}
+
+.tsumego-practice__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: 280px;
+  padding: var(--space-md);
+  background: var(--color-panel-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+}
+
+.tsumego-practice__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.tsumego-practice__title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.tsumego-practice__difficulty {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.tsumego-practice__difficulty--beginner {
+  background: rgba(62, 207, 142, 0.18);
+  color: var(--color-accent-jade);
+}
+
+.tsumego-practice__difficulty--intermediate {
+  background: rgba(224, 165, 55, 0.18);
+  color: var(--color-accent-amber);
+}
+
+.tsumego-practice__difficulty--advanced {
+  background: rgba(217, 83, 79, 0.18);
+  color: var(--color-accent-red);
+}
+
+.tsumego-practice__instruction {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.tsumego-practice__turn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 13px;
+  color: var(--color-text-primary);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.status-box {
+  font-size: 13px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  line-height: 1.4;
+}
+
+.status-box--neutral {
+  background: var(--color-panel);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-subtle);
+}
+
+.status-box--info {
+  background: rgba(90, 143, 217, 0.14);
+  color: var(--color-accent-blue);
+  border-color: rgba(90, 143, 217, 0.3);
+}
+
+.status-box--error {
+  background: rgba(217, 83, 79, 0.14);
+  color: var(--color-accent-red);
+  border-color: rgba(217, 83, 79, 0.35);
+  font-weight: 600;
+}
+
+.status-box--success {
+  background: rgba(62, 207, 142, 0.14);
+  color: var(--color-accent-jade);
+  border-color: rgba(62, 207, 142, 0.35);
+  font-weight: 600;
+}
+
+.tsumego-practice__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}

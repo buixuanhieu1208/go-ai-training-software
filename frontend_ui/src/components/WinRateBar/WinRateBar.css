@@ -1,0 +1,101 @@
+/* src/components/WinRateBar/WinRateBar.css */
+
+.winrate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--color-panel-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+  width: 100%;
+}
+
+.winrate__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.winrate__label-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+}
+
+.winrate__thinking {
+  font-size: 11px;
+  color: var(--color-accent-jade);
+}
+
+.winrate__track {
+  position: relative;
+  width: 28px;
+  height: 220px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.winrate__segment {
+  position: absolute;
+  left: 0;
+  right: 0;
+  transition: height 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.winrate__segment--white {
+  top: 0;
+  background: linear-gradient(180deg, var(--color-winrate-white), #cfc9b8);
+}
+
+.winrate__segment--black {
+  bottom: 0;
+  background: linear-gradient(180deg, #2b2b2b, var(--color-winrate-black));
+}
+
+.winrate__divider {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-accent-jade);
+  transition: bottom 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.winrate__readout {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+}
+
+.winrate__readout-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot--black {
+  background: var(--color-winrate-black);
+  border: 1px solid var(--color-border);
+}
+
+.dot--white {
+  background: var(--color-winrate-white);
+}

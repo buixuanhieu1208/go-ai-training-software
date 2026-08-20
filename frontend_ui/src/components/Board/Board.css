@@ -1,0 +1,64 @@
+/* src/components/Board/Board.css */
+
+.board-wrapper {
+  display: inline-block;
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  background: var(--color-panel-raised);
+  box-shadow: var(--shadow-panel);
+  border: 1px solid var(--color-border);
+}
+
+.board-wrapper--disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.board-bg {
+  fill: var(--color-board-light);
+}
+
+.board-line {
+  stroke: var(--color-board-line);
+  stroke-width: 1;
+}
+
+.board-star {
+  fill: var(--color-board-line);
+}
+
+.board-stone {
+  stroke: rgba(0, 0, 0, 0.25);
+  stroke-width: 0.5;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.45));
+}
+
+.board-stone--black {
+  fill: var(--color-stone-black-2);
+}
+
+.board-stone--white {
+  fill: var(--color-stone-white-1);
+}
+
+.board-stone-marker--black {
+  fill: var(--color-accent-jade);
+}
+
+.board-stone-marker--white {
+  fill: var(--color-accent-red);
+}
+
+.board-hint {
+  fill: var(--color-accent-jade);
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.board-click-target {
+  cursor: pointer;
+}
+
+.board-click-target:hover {
+  fill: rgba(62, 207, 142, 0.12);
+}

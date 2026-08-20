@@ -1,0 +1,93 @@
+/* src/App.css */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.app-header__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.app-header__logo {
+  font-family: var(--font-display);
+  font-size: 28px;
+  color: var(--color-accent-jade);
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-panel-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.app-header__name {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--color-text-primary);
+}
+
+.app-header__subtitle {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.app-header__mode-switch {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.app-header__board-size {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.tsumego-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-xl) var(--space-lg);
+}
+
+.tsumego-page__switcher {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.board-size-btn {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-panel);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.board-size-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.board-size-btn--active {
+  border-color: var(--color-accent-jade);
+  color: var(--color-accent-jade);
+  background: var(--color-accent-jade-dim);
+}

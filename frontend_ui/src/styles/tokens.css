@@ -1,0 +1,61 @@
+/* src/styles/tokens.css
+   Bảng token thiết kế cho "Huấn luyện viên ảo AI Cờ vây".
+   Ý tưởng: bàn cờ gỗ ấm áp truyền thống đặt trong 1 UI tối, tĩnh lặng,
+   tập trung — giống phòng học cờ vây buổi tối. Điểm nhấn (signature) là
+   thanh Win-rate dạng "viên đá" chẻ đôi đen/trắng chạy dọc theo cạnh phải.
+*/
+
+:root {
+  /* ---- Nền & lớp (surfaces) ---- */
+  --color-bg: #14140f;
+  --color-panel: #1d1c17;
+  --color-panel-raised: #262420;
+  --color-border: #3a362c;
+  --color-border-subtle: #2a2822;
+
+  /* ---- Gỗ bàn cờ ---- */
+  --color-board-light: #dcb36c;
+  --color-board-dark: #b9873f;
+  --color-board-line: #4a3319;
+
+  /* ---- Quân cờ ---- */
+  --color-stone-black-1: #3a3a3a;
+  --color-stone-black-2: #050505;
+  --color-stone-white-1: #ffffff;
+  --color-stone-white-2: #d8d4c8;
+
+  /* ---- Chữ ---- */
+  --color-text-primary: #ede7d9;
+  --color-text-secondary: #a8a190;
+  --color-text-muted: #6f6a5c;
+
+  /* ---- Điểm nhấn ---- */
+  --color-accent-jade: #3ecf8e; /* gợi ý AI, hover, thành công */
+  --color-accent-jade-dim: rgba(62, 207, 142, 0.18);
+  --color-accent-amber: #e0a537; /* cảnh báo nhẹ, atari */
+  --color-accent-red: #d9534f; /* resign, lỗi, dame */
+  --color-accent-blue: #5a8fd9; /* thông tin phụ */
+
+  /* ---- Win-rate (đen/trắng tương phản) ---- */
+  --color-winrate-black: #0a0a0a;
+  --color-winrate-white: #f2efe6;
+
+  /* ---- Typography ---- */
+  --font-display: "Zen Maru Gothic", "Noto Serif", "Georgia", serif;
+  --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+
+  /* ---- Bo góc & bóng ---- */
+  --radius-sm: 4px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-stone: 0 1px 2px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
+
+  /* ---- Khoảng cách ---- */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+}
