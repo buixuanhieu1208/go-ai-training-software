@@ -5,6 +5,7 @@
 
 import { useEffect, useRef } from "react";
 import type { Move } from "../../types/go";
+import { BOARD_COLUMN_LETTERS } from "../../constants/board";
 import "./MoveHistory.css";
 
 export interface MoveHistoryProps {
@@ -21,8 +22,7 @@ const MISTAKE_LABEL: Record<string, string> = {
 
 function formatPosition(move: Move): string {
   if (!move.position) return "Pass";
-  const columns = "ABCDEFGHJKLMNOPQRST"; // bỏ chữ "I" theo quy ước cờ vây
-  return `${columns[move.position.x]}${move.position.y + 1}`;
+  return `${BOARD_COLUMN_LETTERS[move.position.x]}${move.position.y + 1}`;
 }
 
 export function MoveHistory({ moves }: MoveHistoryProps) {

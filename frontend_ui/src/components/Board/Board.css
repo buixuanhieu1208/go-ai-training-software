@@ -34,11 +34,19 @@
 }
 
 .board-stone--black {
-  fill: var(--color-stone-black-2);
+  fill: url(#stoneBlackGrad);
 }
 
 .board-stone--white {
-  fill: var(--color-stone-white-1);
+  fill: url(#stoneWhiteGrad);
+}
+
+.board-coord-label {
+  fill: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  user-select: none;
+  pointer-events: none;
 }
 
 .board-stone-marker--black {
@@ -53,6 +61,84 @@
   fill: var(--color-accent-jade);
   pointer-events: none;
   transition: opacity 0.25s ease;
+}
+
+/* Gợi ý nước đi tối ưu (rank 1) — nổi bật màu hổ phách + nhấp nháy nhẹ */
+.board-hint--best {
+  fill: var(--color-accent-amber);
+  animation: board-hint-pulse 1.1s ease-in-out infinite;
+}
+
+.board-hint__best-ring {
+  fill: none;
+  stroke: var(--color-accent-amber);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+  pointer-events: none;
+  opacity: 0.8;
+  animation: board-hint-ring-spin 6s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.board-hint__star {
+  fill: #14140f;
+  font-size: 11px;
+  pointer-events: none;
+  user-select: none;
+}
+
+@keyframes board-hint-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes board-hint-ring-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Hiệu ứng "+N" nổi lên & mờ dần khi bắt quân */
+.board-floating-score {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  pointer-events: none;
+  user-select: none;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.55);
+  stroke-width: 3px;
+  animation: board-floating-score-rise 1.1s ease-out forwards;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.board-floating-score--black {
+  fill: var(--color-accent-jade);
+}
+
+.board-floating-score--white {
+  fill: var(--color-accent-amber);
+}
+
+@keyframes board-floating-score-rise {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-42px);
+    opacity: 0;
+  }
 }
 
 .board-click-target {

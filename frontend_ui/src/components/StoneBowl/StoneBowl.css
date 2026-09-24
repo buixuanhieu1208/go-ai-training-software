@@ -1,0 +1,86 @@
+/* src/components/StoneBowl/StoneBowl.css
+   Hũ đựng quân cờ — đặt cạnh bàn cờ, style gỗ ấm đồng bộ token --color-board-*. */
+
+.stone-bowl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 112px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.stone-bowl__pot {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 100%;
+  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.45));
+  transition: transform 0.18s ease;
+}
+
+.stone-bowl__pot:hover {
+  transform: translateY(-2px) scale(1.03);
+}
+
+.stone-bowl__pot:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.stone-bowl__pot--poked {
+  animation: stone-bowl-poke 0.45s ease;
+}
+
+@keyframes stone-bowl-poke {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  30% {
+    transform: rotate(-3deg) scale(1.05);
+  }
+  60% {
+    transform: rotate(2deg) scale(1.02);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+.stone-bowl__svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.stone-bowl__caption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  background: var(--color-panel-raised);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.stone-bowl__label {
+  font-family: var(--font-display);
+  color: var(--color-text-primary);
+}
+
+.stone-bowl__count {
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+}
+
+/* Ẩn hũ khi màn hình hẹp — nhường chỗ cho bàn cờ, giống layout hiện có ở
+   GameLayout.css (breakpoint 1200px đã dồn layout xuống 1 cột). */
+@media (max-width: 1200px) {
+  .stone-bowl {
+    display: none;
+  }
+}

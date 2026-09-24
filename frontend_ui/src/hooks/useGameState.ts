@@ -34,7 +34,9 @@ export function useGameState(initialBoardSize: BoardSize = 19): UseGameStateRetu
     createInitialState(initialBoardSize)
   );
   // Lưu lịch sử board snapshot để Undo O(1) thay vì replay toàn bộ ván.
-  const [boardHistory, setBoardHistory] = useState<GameState["board"][]>([]);
+  // (chỉ setter được dùng trực tiếp trong hook này; giá trị được đọc qua
+  // functional update của setBoardHistory bên dưới)
+  const [, setBoardHistory] = useState<GameState["board"][]>([]);
 
   const placeStone = useCallback(
     (position: Position): boolean => {
@@ -52,7 +54,7 @@ export function useGameState(initialBoardSize: BoardSize = 19): UseGameStateRetu
         const boardWithMove = cloneBoard(prev.board);
         boardWithMove[position.y][position.x] = prev.currentPlayer;
 
-        const { board: boardAfterCapture, capturedCount } = applyCaptures(
+        const { board: boardAfterCapture, capturedCount, capturedPositions } = applyCaptures(
           boardWithMove,
           position,
           prev.currentPlayer
@@ -67,6 +69,7 @@ export function useGameState(initialBoardSize: BoardSize = 19): UseGameStateRetu
           position,
           isCapture: capturedCount > 0,
           capturedCount,
+          capturedPositions: capturedCount > 0 ? capturedPositions : undefined,
           mistakeTag: null, // sẽ được AI Engine gắn nhãn sau (atari/dame/blunder...)
         };
 

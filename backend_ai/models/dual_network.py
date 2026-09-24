@@ -7,23 +7,19 @@ class DualCNN(nn.Module):
     Mạng nơ-ron tích chập (CNN) kết hợp Policy Network và Value Network.
     Lấy cảm hứng từ kiến trúc AlphaGo Zero.
     """
-    def __init__(self, board_size=19, in_channels=3):
+    def __init__(self, board_size=19, in_channels=3, channels=64):
         super(DualCNN, self).__init__()
         self.board_size = board_size
-        
-        # 1. Các lớp Convolution dùng chung (Shared Layers) trích xuất đặc trưng
+        self.channels = channels
+
         self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
-        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
-        
-        # 2. Nhánh 1: Policy Head (Mạng chính sách)
-        # Đầu ra: Xác suất của các nước đi trên bàn cờ
-        self.policy_conv = nn.Conv2d(64, 2, kernel_size=1)
+        self.conv2 = nn.Conv2d(64, channels, kernel_size=3, padding=1)
+        self.conv3 = nn.Conv2d(channels, channels, kernel_size=3, padding=1)
+
+        self.policy_conv = nn.Conv2d(channels, 2, kernel_size=1)
         self.policy_fc = nn.Linear(2 * board_size * board_size, board_size * board_size)
-        
-        # 3. Nhánh 2: Value Head (Mạng giá trị)
-        # Đầu ra: Điểm số từ -1.0 (Thua) đến 1.0 (Thắng)
-        self.value_conv = nn.Conv2d(64, 1, kernel_size=1)
+
+        self.value_conv = nn.Conv2d(channels, 1, kernel_size=1)
         self.value_fc1 = nn.Linear(1 * board_size * board_size, 256)
         self.value_fc2 = nn.Linear(256, 1)
         

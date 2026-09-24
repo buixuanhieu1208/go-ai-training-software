@@ -25,6 +25,8 @@ export interface Move {
   position: Position | null; // null = Pass
   isCapture?: boolean;
   capturedCount?: number;
+  /** Toạ độ các quân vừa bị bắt — dùng để đặt hiệu ứng "+N điểm" đúng vị trí trên bàn cờ */
+  capturedPositions?: Position[];
   // Đánh dấu lỗi để phục vụ thống kê "đánh giá phong độ"
   mistakeTag?: MistakeTag | null;
 }
@@ -51,4 +53,16 @@ export interface ScoreResult {
   whiteScore: number;
   /** Các điểm thuộc vùng đất của ai, dùng để tô màu overlay trên bàn cờ */
   territoryMap: ("black" | "white" | "neutral")[][];
+}
+
+/**
+ * 1 hiệu ứng "+N điểm" nổi lên trên bàn cờ khi có quân bị bắt. `color` là màu
+ * của bên VỪA BẮT được quân (bên hưởng lợi), dùng để tô màu số điểm nổi lên.
+ */
+export interface FloatingScoreEffect {
+  id: number;
+  x: number;
+  y: number;
+  value: number;
+  color: Exclude<Stone, "empty">;
 }

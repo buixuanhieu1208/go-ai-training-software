@@ -72,10 +72,11 @@ export function applyCaptures(
   board: BoardMatrix,
   move: Position,
   movedColor: Exclude<Stone, "empty">
-): { board: BoardMatrix; capturedCount: number } {
+): { board: BoardMatrix; capturedCount: number; capturedPositions: Position[] } {
   const opponent: Stone = movedColor === "black" ? "white" : "black";
   const newBoard = board.map((row) => [...row]);
   let capturedCount = 0;
+  const capturedPositions: Position[] = [];
   const visited = new Set<string>();
 
   for (const { dx, dy } of DIRECTIONS) {
@@ -94,11 +95,12 @@ export function applyCaptures(
       group.forEach((p) => {
         newBoard[p.y][p.x] = "empty";
         capturedCount += 1;
+        capturedPositions.push(p);
       });
     }
   }
 
-  return { board: newBoard, capturedCount };
+  return { board: newBoard, capturedCount, capturedPositions };
 }
 
 /**

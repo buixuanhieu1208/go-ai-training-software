@@ -97,7 +97,9 @@ class MCTSEngine:
                 curr.visit_count += 1
                 curr.value_sum += val
                 val = -val  # Đổi dấu cho người chơi đối diện
-                curr = curr.agent if hasattr(curr, 'agent') else curr.parent # Safe pointer update
+                
+                # Đã dọn dẹp đoạn code phòng thủ thừa ở đây
+                curr = curr.parent 
 
         # Chọn nước đi có số lần ghé thăm (visit_count) cao nhất
         if not root.children:

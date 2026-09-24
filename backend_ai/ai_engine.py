@@ -1,143 +1,66 @@
-import random
-import copy
-from typing import List, Tuple, Optional, Dict, Any
+import os
+import torch
+from models.dual_network import DualCNN
+from mcts.search_tree import MCTSEngine
+from utils.game_logic import GoState
 
-Move = Tuple[int, int]
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_WEIGHTS_19 = os.path.join(BASE_DIR, "models", "dualcnn_go_model_2095.pth")
 
 
-class GoState:
-    """Minimal mock Go board state sufficient to exercise search logic."""
-
-    def __init__(self, board_size: int = 9, board: Optional[List[List[int]]] = None,
-                 current_player: int = 1, pass_count: int = 0, move_count: int = 0) -> None:
-        self.board_size = board_size
-        self.board = board if board is not None else [[0] * board_size for _ in range(board_size)]
-        self.current_player = current_player
-        self.pass_count = pass_count
-        self.move_count = move_count
-
-    def get_legal_moves(self) -> List[Move]:
-        """Returns empty intersections as legal moves; 'pass' handled separately by caller."""
-        moves = []
-        for y in range(self.board_size):
-            for x in range(self.board_size):
-                if self.board[y][x] == 0:
-                    moves.append((x, y))
-        return moves
-
-    def apply_move(self, move: Optional[Move]) -> "GoState":
-        """Returns a new GoState after applying move (None = pass)."""
-        new_board = copy.deepcopy(self.board)
-        pass_count = self.pass_count
-        if move is None:
-            pass_count += 1
-        else:
-            x, y = move
-            new_board[y][x] = self.current_player
-            pass_count = 0
-        return GoState(
-            board_size=self.board_size,
-            board=new_board,
-            current_player=-self.current_player,
-            pass_count=pass_count,
-            move_count=self.move_count + 1,
-        )
-
-    def is_terminal(self) -> bool:
-        return self.pass_count >= 2 or len(self.get_legal_moves()) == 0
+def _infer_channels(state_dict: dict, default: int = 64) -> int:
+    """Dò số kênh ẩn thực tế của checkpoint qua shape của conv2.weight,
+    thay vì hard-code — tránh lặp lại lỗi lệch kiến trúc như hiện tại."""
+    weight = state_dict.get("conv2.weight")
+    if weight is None:
+        return default
+    return int(weight.shape[0])
 
 
 class GoAIEngine:
-    """CNN-guided Minimax engine with Alpha-Beta pruning for Go move selection."""
+    def __init__(self, simulations: int = 100, weights_path: str = DEFAULT_WEIGHTS_19):
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.simulations = simulations
+        self.weights_path = weights_path
+        self.models = {}
+        print(f"Khởi tạo AI Engine trên thiết bị: {self.device}")
 
-    def __init__(self, seed: Optional[int] = None) -> None:
-        self._rng = random.Random(seed)
+    def _get_model(self, size: int):
+        if size not in self.models:
+            print(f"Đang thiết lập não bộ cho bàn cờ {size}x{size}...")
 
-    def predict(self, state: GoState) -> Tuple[List[Tuple[Move, float]], float]:
-        """Mock CNN forward pass: returns (policy, value) without any real model."""
-        legal_moves = state.get_legal_moves()
-        if not legal_moves:
-            return [], 0.0
+            state_dict = None
+            if size == 19:
+                if os.path.exists(self.weights_path):
+                    try:
+                        # map_location='cpu': load được dù checkpoint lưu từ
+                        # máy GPU (Colab) trong khi server chạy CPU.
+                        state_dict = torch.load(self.weights_path, map_location="cpu")
+                        print(f"Đã đọc trọng số: {self.weights_path}")
+                    except Exception as e:
+                        print(f"LỖI khi đọc file trọng số '{self.weights_path}': {e}")
+                else:
+                    print(f"Cảnh báo: Không tìm thấy file trọng số tại '{self.weights_path}'.")
 
-        raw_scores = [self._rng.random() for _ in legal_moves]
-        total = sum(raw_scores)
-        probs = [s / total for s in raw_scores]
-        policy = sorted(zip(legal_moves, probs), key=lambda item: item[1], reverse=True)
+            channels = _infer_channels(state_dict, default=64) if state_dict else 64
+            model = DualCNN(board_size=size, channels=channels).to(self.device)
 
-        value = self._rng.uniform(-1.0, 1.0)
-        return policy, value
+            if state_dict is not None:
+                try:
+                    model.load_state_dict(state_dict)
+                    print(f"Thành công: Đã load kinh nghiệm cho bàn {size}x{size} (channels={channels}).")
+                except Exception as e:
+                    print(f"LỖI khi nạp trọng số vào kiến trúc DualCNN: {e}")
+                    print("AI sẽ chạy với trọng số khởi tạo ngẫu nhiên (chưa học).")
+            else:
+                print(f"Cảnh báo: Chưa có dữ liệu huấn luyện cho bàn {size}x{size}. AI sẽ đánh theo bản năng.")
 
-    def minimax(
-        self,
-        state: GoState,
-        depth: int,
-        alpha: float,
-        beta: float,
-        maximizing_player: bool,
-        k_branches: int,
-    ) -> float:
-        """Alpha-Beta Minimax guided by mock policy (breadth) and value (depth cutoff)."""
-        policy, value = self.predict(state)
+            model.eval()
+            self.models[size] = model
 
-        if depth == 0 or state.is_terminal() or not policy:
-            return value
+        return self.models[size]
 
-        top_moves = [move for move, _ in policy[:k_branches]]
-
-        if maximizing_player:
-            best_score = float("-inf")
-            for move in top_moves:
-                child_state = state.apply_move(move)
-                score = self.minimax(child_state, depth - 1, alpha, beta, False, k_branches)
-                best_score = max(best_score, score)
-                alpha = max(alpha, best_score)
-                if beta <= alpha:
-                    break
-            return best_score
-        else:
-            best_score = float("inf")
-            for move in top_moves:
-                child_state = state.apply_move(move)
-                score = self.minimax(child_state, depth - 1, alpha, beta, True, k_branches)
-                best_score = min(best_score, score)
-                beta = min(beta, best_score)
-                if beta <= alpha:
-                    break
-            return best_score
-
-    def get_best_move(self, state: GoState, difficulty: str) -> Optional[Move]:
-        """Selects a move according to difficulty: Easy (policy-only), Medium/Hard (Minimax)."""
-        settings: Dict[str, Dict[str, int]] = {
-            "Easy": {"depth": 1, "k": 5},
-            "Medium": {"depth": 3, "k": 3},
-            "Hard": {"depth": 5, "k": 5},
-        }
-        if difficulty not in settings:
-            raise ValueError(f"Unknown difficulty: {difficulty}")
-
-        depth = settings[difficulty]["depth"]
-        k = settings[difficulty]["k"]
-
-        policy, _ = self.predict(state)
-        if not policy:
-            return None
-
-        top_moves = policy[:k]
-
-        if difficulty == "Easy":
-            move, _ = self._rng.choice(top_moves)
-            return move
-
-        best_move: Optional[Move] = None
-        best_score = float("-inf")
-        alpha, beta = float("-inf"), float("inf")
-
-        for move, _ in top_moves:
-            child_state = state.apply_move(move)
-            score = self.minimax(child_state, depth - 1, alpha, beta, False, k)
-            if score > best_score:
-                best_score = score
-                best_move = move
-            alpha = max(alpha, best_score)
-
-        return best_move
+    def get_best_move(self, current_state: GoState):
+        model = self._get_model(current_state.size)
+        mcts = MCTSEngine(model=model, device=self.device, num_simulations=self.simulations)
+        return mcts.search(current_state)
