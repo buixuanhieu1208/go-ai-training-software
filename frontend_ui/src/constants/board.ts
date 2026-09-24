@@ -33,3 +33,6 @@ export const STAR_POINTS: Record<BoardSize, [number, number][]> = {
 };
 
 export const DEFAULT_BOARD_SIZE: BoardSize = 19;
+
+/** Chữ cái toạ độ cột theo quy ước cờ vây (bỏ chữ "I" để tránh nhầm số 1) */
+export const BOARD_COLUMN_LETTERS = "ABCDEFGHJKLMNOPQRST";

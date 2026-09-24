@@ -58,6 +58,42 @@ body {
   gap: var(--space-sm);
 }
 
+.app-header__back {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-panel);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  margin-right: var(--space-sm);
+}
+
+.app-header__back:hover {
+  border-color: var(--color-accent-jade);
+  color: var(--color-accent-jade);
+}
+
+.app-header__rules-btn {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-panel);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.app-header__rules-btn:hover {
+  border-color: var(--color-accent-amber);
+  color: var(--color-accent-amber);
+}
+
 .tsumego-page {
   display: flex;
   flex-direction: column;

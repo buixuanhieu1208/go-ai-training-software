@@ -5,14 +5,20 @@ body,
   scrollbar-gutter: stable;
 }
 
-body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Cuộn mượt cho các neo trong Home (nav -> #modes, #features, #tsumego-teaser) */
+html {
+  scroll-behavior: smooth;
 }
 
-* {
-  font-family: inherit !important;
+body {
+  /* Font mặc định cho phần thân trang — các khối dùng var(--font-display)/
+     var(--font-mono) (tiêu đề, dữ liệu) tự ghi đè font riêng của chúng, xem
+     bên dưới: KHÔNG ép font-family bằng "*" + !important như code cũ, vì
+     điều đó vô hiệu hoá mọi font-family khai báo ở nơi khác trong toàn app. */
+  font-family: var(--font-body), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 ::-webkit-scrollbar {

@@ -40,8 +40,12 @@
   --color-winrate-black: #0a0a0a;
   --color-winrate-white: #f2efe6;
 
-  /* ---- Typography ---- */
-  --font-display: "Zen Maru Gothic", "Noto Serif", "Georgia", serif;
+  /* ---- Typography ----
+     Zen Maru Gothic thiếu glyph tiếng Việt có dấu (ọ, ế, ầ...) nên bị vỡ chữ
+     khi decompose dấu — đặt "Be Vietnam Pro" lên trước để chữ Việt hiển thị
+     đúng; Zen Maru Gothic chỉ còn được dùng cho ký tự CJK (chữ "碁" ở logo)
+     vì trình duyệt tự chuyển font theo từng glyph khi font đầu không có. */
+  --font-display: "Be Vietnam Pro", "Zen Maru Gothic", "Noto Serif", "Georgia", serif;
   --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
 

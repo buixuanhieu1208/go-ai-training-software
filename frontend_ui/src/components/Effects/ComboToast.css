@@ -1,0 +1,77 @@
+/* src/components/Effects/ComboToast.css */
+
+.combo-toast-layer {
+  position: fixed;
+  top: 18%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+}
+
+.combo-toast {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 24px;
+  border-radius: 999px;
+  background: rgba(20, 20, 15, 0.85);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-panel);
+  backdrop-filter: blur(4px);
+  animation: combo-toast-pop 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.combo-toast--black {
+  border-color: var(--color-accent-jade);
+}
+
+.combo-toast--white {
+  border-color: var(--color-accent-amber);
+}
+
+.combo-toast__label {
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.combo-toast__count {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.combo-toast--black .combo-toast__count {
+  color: var(--color-accent-jade);
+}
+
+.combo-toast--white .combo-toast__count {
+  color: var(--color-accent-amber);
+}
+
+@keyframes combo-toast-pop {
+  0% {
+    transform: scale(0.6) translateY(10px);
+    opacity: 0;
+  }
+  15% {
+    transform: scale(1.08) translateY(0);
+    opacity: 1;
+  }
+  25% {
+    transform: scale(1);
+  }
+  78% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.96) translateY(-10px);
+    opacity: 0;
+  }
+}
