@@ -1,0 +1,58 @@
+/* src/components/Online/OnlineHub.css */
+.online-hub__account {
+  display: flex;
+  align-items: center;
+}
+
+.online-hub__profile-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--color-panel-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.online-hub__profile-btn:hover {
+  border-color: var(--color-accent-jade);
+}
+
+.online-hub__avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* --- Layout 2 cột kiểu chess.com, giữ nguyên tông màu dự án --- */
+.online-hub {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: var(--space-lg);
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--space-lg);
+  align-items: start;
+}
+
+.online-hub__board-area {
+  min-width: 0;
+}
+
+.online-hub__sidebar-area {
+  position: sticky;
+  top: var(--space-lg);
+}
+
+@media (max-width: 960px) {
+  .online-hub {
+    grid-template-columns: 1fr;
+  }
+  .online-hub__sidebar-area {
+    position: static;
+  }
+}

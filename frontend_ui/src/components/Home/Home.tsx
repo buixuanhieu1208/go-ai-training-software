@@ -16,6 +16,7 @@ import "./Home.css";
 
 export interface HomeProps {
   onSelectMode: (mode: GameMode) => void;
+  onGoOnline: () => void;
   onOpenRules: () => void;
   onOpenLogin: () => void;
   onOpenRegister: () => void;
@@ -48,7 +49,7 @@ const FEATURES: { icon: React.ReactNode; title: string; description: string }[] 
   },
 ];
 
-export function Home({ onSelectMode, onOpenRules, onOpenLogin, onOpenRegister }: HomeProps) {
+export function Home({ onSelectMode, onGoOnline, onOpenRules, onOpenLogin, onOpenRegister }: HomeProps) {
   const teaserPuzzle = MOCK_TSUMEGO_PUZZLES[0];
   const teaserBoard = useMemo(() => {
     const parsed = parseSgf(teaserPuzzle.sgf);
@@ -59,6 +60,7 @@ export function Home({ onSelectMode, onOpenRules, onOpenLogin, onOpenRegister }:
     <div className="home-shell">
       <Sidebar
         onSelectMode={onSelectMode}
+        onGoOnline={onGoOnline}
         onOpenRules={onOpenRules}
         onOpenLogin={onOpenLogin}
         onOpenRegister={onOpenRegister}
