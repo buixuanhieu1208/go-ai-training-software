@@ -1,5 +1,6 @@
 // src/App.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { AnalysisPanel } from "./components/AnalysisPanel/AnalysisPanel";
 import { useRefereeAnalysis } from "./hooks/useRefereeAnalysis";
 import { GameLayout } from "./components/Layout/GameLayout";
@@ -24,9 +25,16 @@ import { useSound } from "./hooks/useSound";
 import type { BoardSize, FloatingScoreEffect } from "./types/go";
 import type { GameMode } from "./types/mode";
 import { BOARD_SIZES } from "./constants/board";
+import Lobby from "./components/Lobby";
+import GameRoom from "./components/GameRoom";
 import "./styles/tokens.css";
 import "./App.css";
-
+import { AuthProvider } from "./contexts/AuthContext";
+import LocalGameRoom from "./components/LocalGameRoom";
+import JoinRoom from "./components/JoinRoom";
+import OnlineHub from "./components/Online/OnlineHub";
+import ProfilePage from "./components/Profile/ProfilePage";
+import AddFriend from "./components/AddFriend";
 
 type Screen = "menu" | "game" | "login" | "register";
 
@@ -50,7 +58,14 @@ interface BackendMoveResponse {
   winner?: "black" | "white";
 }
 
-function App() {
+// ============================================================================
+// GameApp — TOÀN BỘ logic chơi cục bộ (local state, không qua Firestore):
+// pvp-local, pve (gọi thẳng Backend AI), eve, tsumego. Đây chính là nội dung
+// component App cũ, chỉ đổi tên để nhường "App" cho lớp Router bên dưới.
+// ============================================================================
+function GameApp() {
+  const navigate = useNavigate();
+
   const [screen, setScreen] = useState<Screen>("menu");
   const [mode, setMode] = useState<GameMode>("pvp-local");
   const [rulesOpen, setRulesOpen] = useState(false);
@@ -148,7 +163,7 @@ function App() {
     const fetchAiMove = async () => {
       aiRequestInFlight.current = true;
       setIsAiThinking(true);
-      
+
       try {
         // 1. Đếm số lần pass liên tiếp
         let passes = 0;
@@ -175,15 +190,14 @@ function App() {
         });
 
         if (!response.ok) throw new Error(`Lỗi kết nối Backend: ${response.status}`);
-        
+
         // 4. XỬ LÝ KẾT QUẢ TRẢ VỀ
         const data: BackendMoveResponse = await response.json();
 
         if (data.action === "end") {
-          // Game kết thúc, hiển thị kết quả
           const winnerName = data.winner === "black" ? "Quân Đen" : "Quân Trắng";
           alert(`🏁 VÁN ĐẤU KẾT THÚC!\n\nĐiểm Đen: ${data.black_score}\nĐiểm Trắng: ${data.white_score}\n\n🏆 NGƯỜI CHIẾN THẮNG: ${winnerName}`);
-          return; 
+          return;
         } else if (data.action === "pass") {
           pass();
         } else if (data.action === "move" && data.row !== undefined && data.col !== undefined) {
@@ -193,7 +207,6 @@ function App() {
             pass();
           }
         }
-        
       } catch (error) {
         console.error("Lỗi khi kết nối với AI Engine:", error);
       } finally {
@@ -227,6 +240,13 @@ function App() {
   };
 
   const handleSelectMode = (nextMode: GameMode) => {
+    // "pvp-online" KHÔNG chơi local nữa — điều hướng sang luồng Firestore thật
+    // (Lobby -> chọn/tạo phòng -> GameRoom), tách hẳn khỏi useGameState local.
+    if (nextMode === "pvp-online") {
+      navigate("/online");
+      return;
+    }
+
     setMode(nextMode);
     setEvePaused(false);
     clearEffects();
@@ -308,6 +328,7 @@ function App() {
       <>
         <Home
           onSelectMode={handleSelectMode}
+          onGoOnline={() => navigate("/online")}
           onOpenRules={() => setRulesOpen(true)}
           onOpenLogin={handleOpenLogin}
           onOpenRegister={handleOpenRegister}
@@ -454,6 +475,30 @@ function App() {
       {rulesModal}
       <ChatBox />
     </>
+  );
+}
+
+// ============================================================================
+// App — lớp Router ngoài cùng. "/" = toàn bộ trải nghiệm local (GameApp,
+// không đổi gì bên trong); "/online" = Lobby Firestore; "/game/:matchId" =
+// phòng chơi thật (PvP/PvE qua Firestore, độc lập hoàn toàn với useGameState).
+// ============================================================================
+function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/online" element={<OnlineHub />} />
+          <Route path="/game/local" element={<LocalGameRoom />} />
+          <Route path="/game/:matchId" element={<GameRoom />} />
+          <Route path="/join/:roomId" element={<JoinRoom />} />
+          <Route path="/*" element={<GameApp />} />
+          <Route path="/online" element={<OnlineHub />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/add-friend/:uid" element={<AddFriend />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

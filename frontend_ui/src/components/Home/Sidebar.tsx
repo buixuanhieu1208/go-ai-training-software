@@ -37,12 +37,13 @@ interface NavItem {
 
 export interface SidebarProps {
   onSelectMode: (mode: GameMode) => void;
+  onGoOnline: () => void;
   onOpenRules: () => void;
   onOpenLogin: () => void;
   onOpenRegister: () => void;
 }
 
-export function Sidebar({ onSelectMode, onOpenRules, onOpenLogin, onOpenRegister }: SidebarProps) {
+export function Sidebar({ onSelectMode, onGoOnline, onOpenRules, onOpenLogin, onOpenRegister }: SidebarProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const containerRef = useRef<HTMLElement | null>(null);
 
@@ -72,7 +73,7 @@ export function Sidebar({ onSelectMode, onOpenRules, onOpenLogin, onOpenRegister
       groups: [
         [
           { label: "Chơi cùng bạn (Local)", onSelect: () => onSelectMode("pvp-local") },
-          { label: "Chơi trực tuyến", disabled: true, badge: "Sắp ra mắt" },
+          { label: "Chơi trực tuyến", onSelect: onGoOnline },
           { label: "Đấu với AI (PvE)", onSelect: () => onSelectMode("pve") },
           { label: "Xem AI tự đấu (EvE)", onSelect: () => onSelectMode("eve") },
         ],

@@ -1,20 +1,25 @@
 import math
 import torch
-import numpy as np
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict
 from models.dual_network import DualCNN
 from models.encoder import BoardEncoder
-from utils.game_logic import GoState, BLACK, WHITE, EMPTY
+from utils.game_logic import GoState, BLACK, WHITE
+from utils.heuristic import evaluate_heuristic
+
 
 class MCTSNode:
-    """Node trong cây tìm kiếm MCTS cho Cờ Vây."""
-    def __init__(self, state: GoState, parent: Optional["MCTSNode"] = None, prior: float = 0.0):
-        self.state = state
+    """Node trong cây MCTS. State được tạo LƯỜI (lazy) — chỉ copy() khi thực
+    sự bị chọn đi qua ở Selection, không phải lúc Expansion. Đây là fix chính
+    cho bottleneck deepcopy (xem Phần 2.2)."""
+
+    def __init__(self, move: Optional[Tuple[int, int]], parent: Optional["MCTSNode"], prior: float = 0.0):
+        self.move = move  # nước đi dẫn từ parent.state tới node này
         self.parent = parent
-        self.children: dict = {}  # Map từ move -> MCTSNode
+        self.state: Optional[GoState] = None  # LƯỜI - chỉ set khi visit lần đầu
+        self.children: Dict = {}
         self.visit_count = 0
         self.value_sum = 0.0
-        self.prior = prior  # Xác suất ưu tiên từ Policy Network
+        self.prior = prior
 
     def q_value(self) -> float:
         if self.visit_count == 0:
@@ -24,17 +29,30 @@ class MCTSNode:
     def is_leaf(self) -> bool:
         return len(self.children) == 0
 
-    def select_child(self, c_puct: float = 1.41) -> Tuple[Optional[Tuple[int, int]], "MCTSNode"]:
-        """Chọn nhánh con tốt nhất dựa trên công thức UCB (PUCT)."""
+    def ensure_state(self) -> GoState:
+        """Materialize state đúng 1 lần duy nhất (copy 1 lần, cache lại)."""
+        if self.state is None:
+            self.state = self.parent.state.copy()
+            self.state.apply_move(self.move)
+        return self.state
+
+    def select_child(self, c_puct: float = 1.41) -> Tuple[Tuple[int, int], "MCTSNode"]:
+        """Chọn con tối đa hoá PUCT THEO GÓC NHÌN CỦA NODE CHA (self).
+
+        FIX QUAN TRỌNG: child.q_value() được lưu theo góc nhìn của bên sắp đi
+        TẠI CHILD (đối thủ của bên đang chọn ở node cha) — vì lượt đã đổi sau
+        move. Phải ĐẢO DẤU (-child.q_value()) khi so sánh từ phía cha, nếu
+        không MCTS sẽ hệ thống hoá việc chọn nước có lợi cho ĐỐI PHƯƠNG.
+        """
         best_score = -float("inf")
         best_move = None
         best_child = None
 
         for move, child in self.children.items():
-            # Công thức PUCT (AlphaGo style)
+            q_from_parent_pov = -child.q_value()  # <-- FIX: đảo dấu
             u = c_puct * child.prior * math.sqrt(self.visit_count) / (1 + child.visit_count)
-            score = child.q_value() + u
-            
+            score = q_from_parent_pov + u
+
             if score > best_score:
                 best_score = score
                 best_move = move
@@ -44,39 +62,65 @@ class MCTSNode:
 
 
 class MCTSEngine:
-    """Bộ máy tìm kiếm MCTS kết hợp DualCNN."""
-    def __init__(self, model: DualCNN, device: str = "cpu", num_simulations: int = 100):
+    """MCTS kết hợp DualCNN (Policy định hướng, Value đánh giá lá), có thể
+    blend thêm heuristic truyền thống (utils/heuristic.py) qua heuristic_weight
+    — hữu ích cho các board_size chưa có trọng số train (xem ai_engine.py)."""
+
+    def __init__(
+        self,
+        model: DualCNN,
+        device: str = "cpu",
+        num_simulations: int = 100,
+        c_puct: float = 1.41,
+        heuristic_weight: float = 0.0,  # 0.0 = chỉ dùng Value Network (mặc định, khớp hành vi cũ)
+    ):
         self.model = model
         self.device = device
         self.num_simulations = num_simulations
+        self.c_puct = c_puct
+        self.heuristic_weight = heuristic_weight
         self.encoder = BoardEncoder()
         self.model.eval()
 
-    def search(self, initial_state: GoState) -> Optional[Tuple[int, int]]:
-        root = MCTSNode(state=initial_state.copy())
+    def _evaluate_leaf(self, state: GoState) -> float:
+        """Trả về value theo góc nhìn của state.current_player, có thể blend
+        Value Network với Heuristic truyền thống."""
+        board_tensor = self.encoder.encode(state)
+        board_tensor = torch.tensor(board_tensor, dtype=torch.float32).unsqueeze(0).to(self.device)
 
-        # Chạy vòng lặp mô phỏng MCTS
+        with torch.no_grad():
+            policy, value = self.model(board_tensor)
+
+        policy_np = policy.cpu().numpy()[0]
+        val_net = value.item()
+
+        if self.heuristic_weight > 0.0:
+            val_heur = evaluate_heuristic(state.board, state.current_player)
+            val = (1 - self.heuristic_weight) * val_net + self.heuristic_weight * val_heur
+        else:
+            val = val_net
+
+        return policy_np, val
+
+    def search(self, initial_state: GoState) -> Optional[Tuple[int, int]]:
+        root = MCTSNode(move=None, parent=None)
+        root.state = initial_state.copy()  # root là state duy nhất copy trước vòng lặp
+
         for _ in range(self.num_simulations):
             node = root
-            state = initial_state.copy()
 
-            # 1. Selection (Chọn node đi xuống)
-            while not node.is_leaf() and not state.is_terminal():
-                move, node = node.select_child()
-                state.apply_move(move)
+            # 1. Selection — chỉ duyệt qua node đã tồn tại, materialize state
+            # lười ngay khi bước vào (ensure_state) thay vì copy trước hết loạt.
+            while not node.is_leaf():
+                _move, node = node.select_child(c_puct=self.c_puct)
+                node.ensure_state()
 
-            # 2. Expansion & Evaluation (Mở rộng và Đánh giá bằng CNN)
+            state = node.ensure_state() if node.state is None else node.state
+
+            # 2. Expansion & Evaluation
             if not state.is_terminal():
-                board_tensor = self.encoder.encode(state)
-                board_tensor = torch.tensor(board_tensor, dtype=torch.float32).unsqueeze(0).to(self.device)
+                policy, val = self._evaluate_leaf(state)
 
-                with torch.no_grad():
-                    policy, value = self.model(board_tensor)
-                
-                policy = policy.cpu().numpy()[0]
-                val = value.item()
-
-                # Tạo các node con dựa trên các nước đi hợp lệ và policy
                 legal_moves = state.get_legal_moves()
                 for move in legal_moves:
                     if move is None:
@@ -84,24 +128,22 @@ class MCTSEngine:
                     r, c = move
                     idx = r * state.size + c
                     prior_prob = float(policy[idx]) if idx < len(policy) else 0.0
-                    
-                    next_state = state.copy()
-                    next_state.apply_move(move)
-                    node.children[move] = MCTSNode(state=next_state, parent=node, prior=prior_prob)
+                    # KHÔNG copy() state ở đây nữa — chỉ tạo node rỗng với move+prior.
+                    node.children[move] = MCTSNode(move=move, parent=node, prior=prior_prob)
             else:
-                val = 0.0  # Game over value
+                val = 0.0
 
-            # 3. Backpropagation (Lan truyền ngược giá trị lên root)
+            # 3. Backpropagation — mỗi node lưu value theo góc nhìn của
+            # CHÍNH NÓ (bên sắp đi tại node đó); đảo dấu mỗi khi lên 1 cấp,
+            # đúng bản chất zero-sum. select_child() đã tự đảo dấu khi đọc,
+            # nên KHÔNG sửa gì thêm ở đây.
             curr = node
             while curr is not None:
                 curr.visit_count += 1
                 curr.value_sum += val
-                val = -val  # Đổi dấu cho người chơi đối diện
-                
-                # Đã dọn dẹp đoạn code phòng thủ thừa ở đây
-                curr = curr.parent 
+                val = -val
+                curr = curr.parent
 
-        # Chọn nước đi có số lần ghé thăm (visit_count) cao nhất
         if not root.children:
             return None
 

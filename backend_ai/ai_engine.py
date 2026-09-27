@@ -60,7 +60,24 @@ class GoAIEngine:
 
         return self.models[size]
 
-    def get_best_move(self, current_state: GoState):
-        model = self._get_model(current_state.size)
-        mcts = MCTSEngine(model=model, device=self.device, num_simulations=self.simulations)
-        return mcts.search(current_state)
+    def get_best_move(self, board, temperature=1.0):
+        # Lấy kích thước bàn cờ hiện tại
+        board_size = board.size 
+        
+        # Tự động lấy mô hình tương ứng với kích thước bàn cờ
+        model = self._get_model(board_size)
+        
+        # Bật heuristic fallback: 0.3 cho bàn 9x9 và 13x13, 0.0 cho bàn 19x19
+        h_weight = 0.3 if board_size in [9, 13] else 0.0
+
+        # Khởi tạo MCTS với heuristic_weight và số vòng mô phỏng từ class
+        mcts = MCTSEngine(
+            model=model,
+            num_simulations=self.simulations,
+            heuristic_weight=h_weight
+        )
+
+        # Chạy mô phỏng MCTS để tìm nước đi
+        best_action, move_probabilities = mcts.search(board, temperature=temperature)
+        
+        return best_action, move_probabilities

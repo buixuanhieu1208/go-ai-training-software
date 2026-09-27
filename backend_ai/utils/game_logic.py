@@ -53,7 +53,7 @@ class GoState:
         r, c = move
         if board[r][c] != EMPTY:
             return None
-        new_board = copy.deepcopy(board)
+        new_board = [row[:] for row in board]
         new_board[r][c] = color
         opponent = -color
         captured_any = False

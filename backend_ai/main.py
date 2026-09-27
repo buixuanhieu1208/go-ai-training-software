@@ -66,6 +66,7 @@ class GameStateRequest(BaseModel):
     board: List[List[int]]       # Ma trận NxN: 1 = Đen, -1 = Trắng, 0 = Trống
     current_player: int          # 1 (Đen) hoặc -1 (Trắng)
     consecutive_passes: int = 0
+    room_id: str | None = None
 
     @field_validator("current_player")
     @classmethod
@@ -111,6 +112,8 @@ def health():
 
 @app.post("/api/v1/get_move", response_model=MoveResponse)
 def get_move(req: GameStateRequest):
+    if req.room_id:
+        logger.info(f"Nhận yêu cầu tính nước đi cho match: {req.room_id}")
     """
     Nhận trạng thái bàn cờ từ Frontend, chạy MCTS (định hướng bởi Policy
     Network, đánh giá lá bởi Value Network) trên DualCNN đã nạp trọng số,

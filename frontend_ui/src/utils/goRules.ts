@@ -1,102 +1,111 @@
 // src/utils/goRules.ts
-// Thuật toán loang (Flood Fill / BFS) dùng cho 2 việc:
-//  1) Tìm nhóm quân + khí (liberties) -> xác định bắt quân (capture).
-//  2) Đếm điểm lãnh thổ (Territory Scoring) khi kết thúc ván.
-//
-// Đây là bản triển khai FE tạm thời (client-side) cho mục đích demo/luyện tập
-// nhanh; khi ghép AI Engine ở BE (Python), phần xác thực luật đầy đủ (ko rule,
-// suicide, superko...) nên chạy ở BE để đảm bảo tính nhất quán.
+// Pure function tính luật cờ Go cơ bản: đặt quân, bắt quân, cấm tự sát.
+// Dùng chung cho PvP Online, PvE, PvP Local và parse SGF.
 
-import type { BoardMatrix, Position, ScoreResult, Stone } from "../types/go";
+import type { BoardMatrix, Position, Stone } from "../types/go";
 
-const DIRECTIONS = [
-  { dx: 0, dy: -1 },
-  { dx: 0, dy: 1 },
-  { dx: -1, dy: 0 },
-  { dx: 1, dy: 0 },
+export type PlayerColor = Exclude<Stone, "empty">;
+
+export interface ComputeMoveResult {
+  board: BoardMatrix;
+  capturedCount: number;
+  capturedPositions: Position[];
+  isCapture?: boolean;
+}
+
+export interface GroupResult {
+  group: Position[];
+  liberties: Set<string>;
+}
+
+export const DIRECTIONS: ReadonlyArray<[number, number]> = [
+  [0, -1],
+  [0, 1],
+  [-1, 0],
+  [1, 0],
 ];
 
-function inBounds(board: BoardMatrix, x: number, y: number): boolean {
+export function inBounds(board: BoardMatrix, x: number, y: number): boolean {
   return y >= 0 && y < board.length && x >= 0 && x < board[0].length;
 }
 
-/**
- * Loang từ 1 điểm để tìm toàn bộ nhóm quân cùng màu liên kết (connected group)
- * và tập hợp các điểm khí (liberties) xung quanh nhóm đó.
- */
-export function findGroupAndLiberties(
-  board: BoardMatrix,
-  start: Position
-): { group: Position[]; liberties: Position[] } {
-  const color = board[start.y][start.x];
+export function oppositeColor(color: PlayerColor): PlayerColor {
+  return color === "black" ? "white" : "black";
+}
+
+export function cloneBoard(board: BoardMatrix): BoardMatrix {
+  return board.map((row) => [...row]);
+}
+
+/** Loang (DFS) tìm toàn bộ nhóm quân liên kết cùng màu + tập hợp khí (liberties). */
+export function findGroupAndLiberties(board: BoardMatrix, startX: number, startY: number): GroupResult {
+  const color = board[startY][startX];
+  if (color === "empty") return { group: [], liberties: new Set<string>() };
+
   const visited = new Set<string>();
   const group: Position[] = [];
-  const libertySet = new Set<string>();
-  const stack: Position[] = [start];
+  const liberties = new Set<string>();
+  const stack: Array<[number, number]> = [[startX, startY]];
 
   while (stack.length > 0) {
-    const current = stack.pop()!;
-    const key = `${current.x},${current.y}`;
+    const [x, y] = stack.pop() as [number, number];
+    const key = `${x},${y}`;
     if (visited.has(key)) continue;
     visited.add(key);
-    group.push(current);
+    group.push({ x, y });
 
-    for (const { dx, dy } of DIRECTIONS) {
-      const nx = current.x + dx;
-      const ny = current.y + dy;
+    for (const [dx, dy] of DIRECTIONS) {
+      const nx = x + dx;
+      const ny = y + dy;
       if (!inBounds(board, nx, ny)) continue;
+
       const neighborColor = board[ny][nx];
       if (neighborColor === "empty") {
-        libertySet.add(`${nx},${ny}`);
+        liberties.add(`${nx},${ny}`);
       } else if (neighborColor === color) {
         const nKey = `${nx},${ny}`;
-        if (!visited.has(nKey)) stack.push({ x: nx, y: ny });
+        if (!visited.has(nKey)) stack.push([nx, ny]);
       }
     }
   }
-
-  const liberties = Array.from(libertySet).map((k) => {
-    const [x, y] = k.split(",").map(Number);
-    return { x, y };
-  });
 
   return { group, liberties };
 }
 
 /**
- * Sau khi đặt 1 quân tại `move`, kiểm tra các nhóm quân đối phương liền kề.
- * Nhóm nào hết khí (0 liberties) sẽ bị bắt (xoá khỏi bàn cờ).
- * Trả về: bàn cờ mới + số quân bị bắt.
+ * Xử lý bắt quân đối phương xung quanh vị trí vừa đặt.
+ * Dùng cho sgfParser.ts và các logic cũ.
  */
 export function applyCaptures(
   board: BoardMatrix,
-  move: Position,
-  movedColor: Exclude<Stone, "empty">
+  position: Position,
+  color: PlayerColor
 ): { board: BoardMatrix; capturedCount: number; capturedPositions: Position[] } {
-  const opponent: Stone = movedColor === "black" ? "white" : "black";
-  const newBoard = board.map((row) => [...row]);
+  const { x, y } = position;
+  const newBoard = cloneBoard(board);
+  const opponent = oppositeColor(color);
   let capturedCount = 0;
-  const capturedPositions: Position[] = [];
-  const visited = new Set<string>();
+  const capturedPositions: Position[] = []; // <-- Bổ sung mảng lưu toạ độ
 
-  for (const { dx, dy } of DIRECTIONS) {
-    const nx = move.x + dx;
-    const ny = move.y + dy;
+  const visitedOpponentGroups = new Set<string>();
+  for (const [dx, dy] of DIRECTIONS) {
+    const nx = x + dx;
+    const ny = y + dy;
     if (!inBounds(newBoard, nx, ny)) continue;
     if (newBoard[ny][nx] !== opponent) continue;
 
-    const key = `${nx},${ny}`;
-    if (visited.has(key)) continue;
+    const groupKey = `${nx},${ny}`;
+    if (visitedOpponentGroups.has(groupKey)) continue;
 
-    const { group, liberties } = findGroupAndLiberties(newBoard, { x: nx, y: ny });
-    group.forEach((p) => visited.add(`${p.x},${p.y}`));
+    const { group, liberties } = findGroupAndLiberties(newBoard, nx, ny);
+    for (const p of group) visitedOpponentGroups.add(`${p.x},${p.y}`);
 
-    if (liberties.length === 0) {
-      group.forEach((p) => {
+    if (liberties.size === 0) {
+      for (const p of group) {
         newBoard[p.y][p.x] = "empty";
         capturedCount += 1;
-        capturedPositions.push(p);
-      });
+        capturedPositions.push(p); // <-- Ghi nhận toạ độ quân bị bắt
+      }
     }
   }
 
@@ -104,77 +113,50 @@ export function applyCaptures(
 }
 
 /**
- * Đếm điểm bằng Flood Fill: loang trên các vùng trống liên tục, xác định
- * vùng đó tiếp giáp với màu nào -> thuộc lãnh thổ màu đó (nếu chỉ tiếp giáp
- * 1 màu duy nhất), ngược lại là vùng trung lập (dame).
+ * Đặt 1 quân `color` tại `position` lên `board`, xử lý bắt quân đối phương và
+ * cấm nước tự sát. KHÔNG xử lý luật Ko (bỏ qua theo yêu cầu — chỉ logic cốt lõi).
+ *
+ * @throws {Error} nếu nước đi không hợp lệ (đã có quân / tự sát)
  */
-export function calculateTerritory(board: BoardMatrix): ScoreResult {
-  const size = board.length;
-  const territoryMap: ("black" | "white" | "neutral")[][] = Array.from(
-    { length: size },
-    () => Array.from({ length: size }, () => "neutral" as const)
-  );
-  const visited = new Set<string>();
-  let blackTerritory = 0;
-  let whiteTerritory = 0;
-  let blackStones = 0;
-  let whiteStones = 0;
-
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const stone = board[y][x];
-      if (stone === "black") blackStones++;
-      if (stone === "white") whiteStones++;
-
-      const key = `${x},${y}`;
-      if (stone !== "empty" || visited.has(key)) continue;
-
-      // BFS loang vùng trống
-      const region: Position[] = [];
-      const bordering = new Set<Stone>();
-      const stack: Position[] = [{ x, y }];
-      const localVisited = new Set<string>([key]);
-
-      while (stack.length > 0) {
-        const cur = stack.pop()!;
-        region.push(cur);
-        for (const { dx, dy } of DIRECTIONS) {
-          const nx = cur.x + dx;
-          const ny = cur.y + dy;
-          if (!inBounds(board, nx, ny)) continue;
-          const nColor = board[ny][nx];
-          const nKey = `${nx},${ny}`;
-          if (nColor === "empty") {
-            if (!localVisited.has(nKey)) {
-              localVisited.add(nKey);
-              stack.push({ x: nx, y: ny });
-            }
-          } else {
-            bordering.add(nColor);
-          }
-        }
-      }
-
-      region.forEach((p) => visited.add(`${p.x},${p.y}`));
-
-      let owner: "black" | "white" | "neutral" = "neutral";
-      if (bordering.size === 1) {
-        owner = bordering.has("black") ? "black" : "white";
-      }
-      if (owner === "black") blackTerritory += region.length;
-      if (owner === "white") whiteTerritory += region.length;
-
-      region.forEach((p) => {
-        territoryMap[p.y][p.x] = owner;
-      });
-    }
+export function computeNextBoard(
+  board: BoardMatrix,
+  position: Position | null,
+  color: PlayerColor
+): ComputeMoveResult {
+  if (!position) {
+    // Nước Pass — board không đổi, không quân nào bị bắt
+    return { board, capturedCount: 0, capturedPositions: [], isCapture: false };
   }
 
-  return {
-    blackTerritory,
-    whiteTerritory,
-    blackScore: blackTerritory + blackStones,
-    whiteScore: whiteTerritory + whiteStones,
-    territoryMap,
+  const { x, y } = position;
+
+  if (!inBounds(board, x, y)) {
+    throw new Error("Vị trí ngoài phạm vi bàn cờ.");
+  }
+  if (board[y][x] !== "empty") {
+    throw new Error("Điểm này đã có quân cờ.");
+  }
+
+  // 1. Đặt quân tạm thời
+  let newBoard = cloneBoard(board);
+  newBoard[y][x] = color;
+
+  // 2. Bắt quân (Tái sử dụng hàm applyCaptures)
+  const captureResult = applyCaptures(newBoard, position, color);
+  newBoard = captureResult.board;
+  const capturedCount = captureResult.capturedCount;
+  const capturedPositions = captureResult.capturedPositions;
+
+  // 3. Cấm tự sát: sau khi bắt quân (nếu có), nhóm của mình phải còn khí
+  const { liberties: ownLiberties } = findGroupAndLiberties(newBoard, x, y);
+  if (ownLiberties.size === 0) {
+    throw new Error("Nước đi tự sát (nhóm quân hết khí sau khi đặt).");
+  }
+
+  return { 
+    board: newBoard, 
+    capturedCount, 
+    capturedPositions,
+    isCapture: capturedCount > 0
   };
 }

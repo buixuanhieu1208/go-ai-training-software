@@ -1,0 +1,114 @@
+/* src/components/GameRoom.css */
+.game-layout__status {
+  padding: var(--space-xl);
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.game-room__link-btn {
+  background: none;
+  border: none;
+  color: var(--color-accent-blue);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.game-room__opponent {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--color-panel-raised);
+  border: 1px solid var(--color-border);
+}
+
+.game-room__opponent-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.game-room__opponent-avatar--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-panel);
+  font-size: 16px;
+}
+
+.game-room__opponent-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-text-primary);
+}
+
+.game-room__opponent-meta {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.game-room__banner {
+  padding: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+}
+
+.game-room__banner--warning {
+  background: rgba(224, 165, 55, 0.14);
+  border: 1px solid rgba(224, 165, 55, 0.35);
+  color: var(--color-accent-amber);
+}
+
+.game-room__banner--error {
+  background: rgba(217, 83, 79, 0.14);
+  border: 1px solid rgba(217, 83, 79, 0.35);
+  color: var(--color-accent-red);
+}
+
+.game-room__info-panel {
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--color-panel-raised);
+  border: 1px solid var(--color-border);
+}
+
+.game-room__info-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.game-room__info-note {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.game-room__resign-btn {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-panel-raised);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.game-room__resign-btn--confirm {
+  background: var(--color-accent-red);
+  border-color: var(--color-accent-red);
+  color: white;
+}
+
+.local-room__controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
