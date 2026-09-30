@@ -43,6 +43,8 @@ export interface GameState {
   capturedBlack: number; // số quân trắng đã bị đen bắt
   capturedWhite: number; // số quân đen đã bị trắng bắt
   isFinished: boolean;
+  /** Điểm đang bị cấm đi do luật KO (Điều 9) đối với bên đến lượt; null/undefined = không có. */
+  koPoint?: Position | null;
 }
 
 /** Kết quả đếm điểm bằng thuật toán Flood Fill (Territory Scoring) */

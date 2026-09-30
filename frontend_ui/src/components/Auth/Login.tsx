@@ -1,17 +1,22 @@
 // src/components/Auth/Login.tsx
-// Trang Đăng nhập — hiện tại chỉ là UI (chưa nối Backend xác thực thật).
-// Submit giả lập độ trễ mạng rồi coi như đăng nhập thành công, quay về Trang chủ.
-
+// Trang Đăng nhập — Firebase Auth (Email/Password + Google), đồng bộ hồ sơ Firestore.
 import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { AuthLayout } from "./AuthLayout";
+import { useAuth } from "../../contexts/AuthContext";
+import { translateAuthError } from "../../services/authService";
 
 export interface LoginProps {
   onBackHome: () => void;
   onGoRegister: () => void;
-  onAuthenticated: () => void;
+  /** Giữ để tương thích App.tsx — điều hướng sau đăng nhập do component tự xử lý (/online). */
+  onAuthenticated?: () => void;
 }
 
-export function Login({ onBackHome, onGoRegister, onAuthenticated }: LoginProps) {
+export function Login({ onBackHome, onGoRegister }: LoginProps) {
+  const navigate = useNavigate();
+  const { loginWithEmail, signInWithGoogle } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -19,7 +24,7 @@ export function Login({ onBackHome, onGoRegister, onAuthenticated }: LoginProps)
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -32,12 +37,28 @@ export function Login({ onBackHome, onGoRegister, onAuthenticated }: LoginProps)
       return;
     }
 
-    // TODO: nối API đăng nhập thật khi Backend sẵn sàng — hiện đang giả lập.
     setSubmitting(true);
-    setTimeout(() => {
+    try {
+      await loginWithEmail(email, password, remember);
+      navigate("/online");
+    } catch (err) {
+      setError(translateAuthError(err));
+    } finally {
       setSubmitting(false);
-      onAuthenticated();
-    }, 650);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setError(null);
+    setSubmitting(true);
+    try {
+      await signInWithGoogle();
+      navigate("/online");
+    } catch (err) {
+      setError(translateAuthError(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -110,7 +131,7 @@ export function Login({ onBackHome, onGoRegister, onAuthenticated }: LoginProps)
           <span>hoặc</span>
         </div>
 
-        <button type="button" className="auth-oauth" disabled title="Sắp ra mắt">
+        <button type="button" className="auth-oauth" onClick={handleGoogle} disabled={submitting}>
           <span className="auth-oauth__icon">G</span> Tiếp tục với Google
         </button>
       </form>

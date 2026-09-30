@@ -5,8 +5,8 @@ class BoardEncoder:
     Bộ mã hóa chuyển đổi trạng thái bàn cờ (GoState) thành Tensor 3D cho mạng CNN.
     Kích thước đầu ra: (3, board_size, board_size) - chuẩn Channel-First của PyTorch.
     """
-    def __init__(self, board_size: int = 19):
-        self.board_size = board_size
+    def __init__(self):
+        # Không khởi tạo board_size cố định ở đây để hỗ trợ đa kích thước (9, 13, 19)
         self.num_planes = 3
 
     def encode(self, state) -> np.ndarray:
@@ -16,10 +16,13 @@ class BoardEncoder:
         - Layer 1: Vị trí quân Trắng (1.0 nếu có, 0.0 nếu không)
         - Layer 2: Các ô trống hợp lệ (1.0 nếu trống, 0.0 nếu có quân)
         """
-        tensor = np.zeros((self.num_planes, self.board_size, self.board_size), dtype=np.float32)
+        # Trích xuất linh hoạt kích thước thực tế của bàn cờ ở từng lượt đi
+        size = state.size
         
-        for y in range(self.board_size):
-            for x in range(self.board_size):
+        tensor = np.zeros((self.num_planes, size, size), dtype=np.float32)
+        
+        for y in range(size):
+            for x in range(size):
                 piece = state.board[y][x]
                 
                 if piece == 1:

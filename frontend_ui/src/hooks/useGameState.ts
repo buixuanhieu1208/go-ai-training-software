@@ -1,11 +1,15 @@
 // src/hooks/useGameState.ts
 // Hook trung tâm quản lý trạng thái 1 ván cờ: đặt quân, pass, undo, resign.
 // Tách riêng khỏi UI để component Board chỉ lo hiển thị + bắt sự kiện click.
+//
+// Luật áp dụng (Luật cờ vây VCF): Điều 5 ăn quân, Điều 6 cấm tự sát, Điều 9 KO.
+// Toàn bộ nước đi được kiểm tra ĐỒNG BỘ bằng tryPlaceStone (goRules.ts) trên `stateRef`,
+// nên placeStone() trả về đúng true/false ngay lập tức (không phụ thuộc thời điểm React chạy updater).
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { BoardSize, GameState, Move, Position, Stone } from "../types/go";
-import { applyCaptures } from "../utils/goRules";
-import { cloneBoard, createEmptyBoard } from "../utils/boardUtils";
+import { tryPlaceStone } from "../utils/goRules";
+import { createEmptyBoard } from "../utils/boardUtils";
 
 function createInitialState(boardSize: BoardSize): GameState {
   return {
@@ -16,12 +20,16 @@ function createInitialState(boardSize: BoardSize): GameState {
     capturedBlack: 0,
     capturedWhite: 0,
     isFinished: false,
+    koPoint: null,
   };
 }
 
 export interface UseGameStateReturn {
   gameState: GameState;
-  /** Đặt quân tại vị trí (x, y). Trả về false nếu nước đi không hợp lệ (đã có quân). */
+  /**
+   * Đặt quân tại vị trí (x, y). Trả về false (và KHÔNG đổi gì) nếu nước đi không hợp lệ:
+   * ván đã kết thúc / ngoài bàn / ô đã có quân / tự sát (Điều 6) / ăn lại KO ngay (Điều 9).
+   */
   placeStone: (position: Position) => boolean;
   pass: () => void;
   resign: () => void;
@@ -30,115 +38,93 @@ export interface UseGameStateReturn {
 }
 
 export function useGameState(initialBoardSize: BoardSize = 19): UseGameStateReturn {
-  const [gameState, setGameState] = useState<GameState>(() =>
-    createInitialState(initialBoardSize)
-  );
-  // Lưu lịch sử board snapshot để Undo O(1) thay vì replay toàn bộ ván.
-  // (chỉ setter được dùng trực tiếp trong hook này; giá trị được đọc qua
-  // functional update của setBoardHistory bên dưới)
-  const [, setBoardHistory] = useState<GameState["board"][]>([]);
+  const [gameState, setGameState] = useState<GameState>(() => createInitialState(initialBoardSize));
+
+  // `stateRef` luôn là trạng thái MỚI NHẤT (mọi thay đổi đều đi qua commit()).
+  const stateRef = useRef<GameState>(gameState);
+  // Lịch sử snapshot để Undo O(1) (khôi phục cả số quân đã bắt và điểm KO).
+  const historyRef = useRef<GameState[]>([]);
+
+  const commit = useCallback((next: GameState) => {
+    stateRef.current = next;
+    setGameState(next);
+  }, []);
 
   const placeStone = useCallback(
     (position: Position): boolean => {
-      let success = true;
-      setGameState((prev) => {
-        if (prev.isFinished) {
-          success = false;
-          return prev;
-        }
-        if (prev.board[position.y][position.x] !== "empty") {
-          success = false;
-          return prev;
-        }
+      const prev = stateRef.current;
+      if (prev.isFinished) return false;
 
-        const boardWithMove = cloneBoard(prev.board);
-        boardWithMove[position.y][position.x] = prev.currentPlayer;
+      const result = tryPlaceStone(prev.board, position, prev.currentPlayer, prev.koPoint ?? null);
+      if (!result.ok) return false;
 
-        const { board: boardAfterCapture, capturedCount, capturedPositions } = applyCaptures(
-          boardWithMove,
-          position,
-          prev.currentPlayer
-        );
-
-        const nextColor: Exclude<Stone, "empty"> =
-          prev.currentPlayer === "black" ? "white" : "black";
-
-        const move: Move = {
-          index: prev.moveHistory.length + 1,
-          color: prev.currentPlayer,
-          position,
-          isCapture: capturedCount > 0,
-          capturedCount,
-          capturedPositions: capturedCount > 0 ? capturedPositions : undefined,
-          mistakeTag: null, // sẽ được AI Engine gắn nhãn sau (atari/dame/blunder...)
-        };
-
-        setBoardHistory((h) => [...h, prev.board]);
-
-        return {
-          ...prev,
-          board: boardAfterCapture,
-          currentPlayer: nextColor,
-          moveHistory: [...prev.moveHistory, move],
-          capturedBlack:
-            prev.currentPlayer === "black"
-              ? prev.capturedBlack + capturedCount
-              : prev.capturedBlack,
-          capturedWhite:
-            prev.currentPlayer === "white"
-              ? prev.capturedWhite + capturedCount
-              : prev.capturedWhite,
-        };
-      });
-      return success;
-    },
-    []
-  );
-
-  const pass = useCallback(() => {
-    setGameState((prev) => {
+      const nextColor: Exclude<Stone, "empty"> = prev.currentPlayer === "black" ? "white" : "black";
       const move: Move = {
         index: prev.moveHistory.length + 1,
         color: prev.currentPlayer,
-        position: null,
+        position,
+        isCapture: result.capturedCount > 0,
+        capturedCount: result.capturedCount,
+        capturedPositions: result.capturedCount > 0 ? result.capturedPositions : undefined,
+        mistakeTag: null, // sẽ được AI Engine gắn nhãn sau (atari/dame/blunder...)
       };
-      const lastMove = prev.moveHistory[prev.moveHistory.length - 1];
-      const isDoublePass = lastMove && lastMove.position === null;
 
-      setBoardHistory((h) => [...h, prev.board]);
-
-      return {
+      historyRef.current.push(prev);
+      commit({
         ...prev,
-        currentPlayer: prev.currentPlayer === "black" ? "white" : "black",
+        board: result.board,
+        currentPlayer: nextColor,
         moveHistory: [...prev.moveHistory, move],
-        isFinished: Boolean(isDoublePass), // 2 lần pass liên tiếp -> kết thúc ván
-      };
+        capturedBlack:
+          prev.currentPlayer === "black" ? prev.capturedBlack + result.capturedCount : prev.capturedBlack,
+        capturedWhite:
+          prev.currentPlayer === "white" ? prev.capturedWhite + result.capturedCount : prev.capturedWhite,
+        koPoint: result.koPoint,
+      });
+      return true;
+    },
+    [commit]
+  );
+
+  const pass = useCallback(() => {
+    const prev = stateRef.current;
+    if (prev.isFinished) return;
+
+    const move: Move = {
+      index: prev.moveHistory.length + 1,
+      color: prev.currentPlayer,
+      position: null,
+    };
+    const lastMove = prev.moveHistory[prev.moveHistory.length - 1];
+    const isDoublePass = Boolean(lastMove && lastMove.position === null);
+
+    historyRef.current.push(prev);
+    commit({
+      ...prev,
+      currentPlayer: prev.currentPlayer === "black" ? "white" : "black",
+      moveHistory: [...prev.moveHistory, move],
+      isFinished: isDoublePass, // 2 lần pass liên tiếp -> kết thúc ván
+      koPoint: null, // KO chỉ cấm đúng một nước kế tiếp (Điều 9)
     });
-  }, []);
+  }, [commit]);
 
   const resign = useCallback(() => {
-    setGameState((prev) => ({ ...prev, isFinished: true }));
-  }, []);
+    commit({ ...stateRef.current, isFinished: true });
+  }, [commit]);
 
   const undo = useCallback(() => {
-    setBoardHistory((history) => {
-      if (history.length === 0) return history;
-      const previousBoard = history[history.length - 1];
-      setGameState((prev) => ({
-        ...prev,
-        board: previousBoard,
-        currentPlayer: prev.currentPlayer === "black" ? "white" : "black",
-        moveHistory: prev.moveHistory.slice(0, -1),
-        isFinished: false,
-      }));
-      return history.slice(0, -1);
-    });
-  }, []);
+    const snapshot = historyRef.current.pop();
+    if (!snapshot) return;
+    commit({ ...snapshot, isFinished: false });
+  }, [commit]);
 
-  const resetGame = useCallback((boardSize?: BoardSize) => {
-    setGameState((prev) => createInitialState(boardSize ?? prev.boardSize));
-    setBoardHistory([]);
-  }, []);
+  const resetGame = useCallback(
+    (boardSize?: BoardSize) => {
+      historyRef.current = [];
+      commit(createInitialState(boardSize ?? stateRef.current.boardSize));
+    },
+    [commit]
+  );
 
   return { gameState, placeStone, pass, resign, undo, resetGame };
 }

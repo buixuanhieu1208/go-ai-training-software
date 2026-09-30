@@ -1,0 +1,184 @@
+/* src/components/GameResult/GameResultModal.css
+   Modal hiển thị kết quả ván đấu.
+   Sử dụng design token từ tokens.css — giữ phong cách tối, tĩnh lặng. */
+
+/* ---- Overlay & animation ---- */
+
+.game-result-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.25s ease-out;
+}
+
+.game-result-modal {
+  background: var(--color-panel-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-xl) var(--space-lg);
+  min-width: 360px;
+  max-width: 460px;
+  width: 90vw;
+  text-align: center;
+  animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ---- Tiêu đề kết quả ---- */
+
+.game-result-trophy {
+  font-size: 3rem;
+  line-height: 1;
+  margin-bottom: var(--space-sm);
+}
+
+.game-result-winner {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-xs);
+}
+
+.game-result-winner--black {
+  color: var(--color-text-primary);
+}
+
+.game-result-winner--white {
+  color: var(--color-accent-amber);
+}
+
+.game-result-reason {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-md);
+}
+
+/* ---- Bảng điểm ---- */
+
+.game-result-scores {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--space-lg);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+}
+
+.game-result-scores th,
+.game-result-scores td {
+  padding: var(--space-sm) var(--space-md);
+  text-align: center;
+}
+
+.game-result-scores thead th {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.game-result-scores tbody td {
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* Cột nhãn (bên trái) */
+.game-result-scores tbody td:first-child {
+  text-align: left;
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+
+/* Hàng tổng điểm */
+.game-result-scores .score-total td {
+  font-weight: 700;
+  font-size: 1.05rem;
+  border-bottom: none;
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-sm);
+}
+
+.game-result-scores .score-total td:nth-child(2) {
+  color: var(--color-text-primary);
+}
+
+.game-result-scores .score-total td:nth-child(3) {
+  color: var(--color-accent-amber);
+}
+
+/* ---- Nút hành động ---- */
+
+.game-result-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+}
+
+.game-result-btn {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.game-result-btn:active {
+  transform: scale(0.97);
+}
+
+/* Nút chính — "Chơi lại" */
+.game-result-btn--primary {
+  background: var(--color-accent-jade);
+  color: #0a0a0a;
+  border-color: var(--color-accent-jade);
+}
+
+.game-result-btn--primary:hover {
+  background: #34b87d;
+  border-color: #34b87d;
+}
+
+/* Nút phụ — "Về menu" */
+.game-result-btn--secondary {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.game-result-btn--secondary:hover {
+  background: var(--color-panel);
+  border-color: var(--color-text-muted);
+  color: var(--color-text-primary);
+}
+
+/* ---- Keyframes ---- */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
