@@ -78,9 +78,9 @@ function GameApp() {
   const [gameEndReason, setGameEndReason] = useState<"resign" | "double-pass" | "end" | null>(null);
   const [backendScore, setBackendScore] = useState<{ black: number; white: number } | null>(null);
 
-  // === "isAiThinking": cờ ĐANG CHỜ BACKEND THẬT trả lời (khác isThinking của
-  // useAiAnalysis vốn chỉ phục vụ vòng tròn gợi ý). Đây là state cốt lõi giữ
-  // lại từ bản cũ để khoá bàn cờ / nút Undo trong lúc chờ AI Engine Python. ===
+  // === isAiThinking: Cờ báo hiệu đang chờ AI Engine Python tính nước đi. ===
+  // Khác với isHintThinking (của useAiAnalysis) chỉ dùng để hiện loading cho WinRateBar,
+  // isAiThinking dùng để khoá bàn cờ và nút Undo để người chơi không can thiệp lúc AI đang nghĩ.
   const [isAiThinking, setIsAiThinking] = useState(false);
   const aiRequestInFlight = useRef(false);
 
@@ -156,12 +156,10 @@ function GameApp() {
     !gameState.isFinished &&
     ((mode === "pve" && gameState.currentPlayer === "white") || (mode === "eve" && !evePaused));
 
-  // === LUỒNG KẾT NỐI BACKEND THẬT (khôi phục từ frontend_ui bản CŨ) ===
-  // Thay cho việc lấy nước đi từ analysis.policyHints[0] (mock nội bộ), effect
-  // này gọi thẳng POST /api/v1/get_move của Backend Python mỗi khi tới lượt
+  // === LUỒNG KẾT NỐI BACKEND THẬT (AI Engine) ===
+  // Effect này gọi thẳng POST /api/v1/get_move của Backend Python mỗi khi tới lượt
   // AI, dịch bàn cờ chữ ("black"/"white"/"empty") sang số (1/-1/0) đúng
-  // contract mà Backend đang chờ, rồi áp nước đi trả về bằng placeStone/pass
-  // — cùng cơ chế state y hệt nước đi của người chơi.
+  // contract mà Backend đang chờ, rồi áp nước đi trả về bằng placeStone/pass.
   useEffect(() => {
     if (!isAiControlledTurn || gameState.isFinished || aiRequestInFlight.current) return;
 
@@ -311,14 +309,15 @@ function GameApp() {
   // ---- Tính điểm khi ván đấu kết thúc ----
   const scoreResult = useMemo(() => {
     if (!gameState.isFinished) return null;
-    // Nếu backend đã trả điểm (action: "end"), ưu tiên dùng điểm backend
     if (backendScore) {
       return {
         blackScore: backendScore.black,
         whiteScore: backendScore.white,
-      };
+        blackTerritory: 0,
+        whiteTerritory: 0,
+        territoryMap: []
+      } as ReturnType<typeof calculateScore>;
     }
-    // Tự tính điểm bằng calculateScore (territory scoring + quân trên bàn)
     return calculateScore(gameState.board, gameState.capturedBlack, gameState.capturedWhite);
   }, [gameState.isFinished, gameState.board, gameState.capturedBlack, gameState.capturedWhite, backendScore]);
 
@@ -593,8 +592,8 @@ function GameApp() {
             reason={gameEndReason ?? "end"}
             blackScore={scoreResult.blackScore}
             whiteScore={scoreResult.whiteScore}
-            blackTerritory={"blackTerritory" in scoreResult ? scoreResult.blackTerritory : 0}
-            whiteTerritory={"whiteTerritory" in scoreResult ? scoreResult.whiteTerritory : 0}
+            blackTerritory={scoreResult.blackTerritory}
+            whiteTerritory={scoreResult.whiteTerritory}
             blackCaptures={gameState.capturedBlack}
             whiteCaptures={gameState.capturedWhite}
             blackStonesOnBoard={blackOnBoard}

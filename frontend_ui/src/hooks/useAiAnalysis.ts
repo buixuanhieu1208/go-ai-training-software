@@ -1,9 +1,6 @@
 // src/hooks/useAiAnalysis.ts
 // Hook đóng vai trò "cổng kết nối" tới AI Engine (Policy + Value + MCTS) ở Backend.
-// Ở Tuần 1, BE chưa sẵn sàng nên ta trả về dữ liệu giả lập (mock) có cùng shape
-// với response thật trong tương lai (xem src/types/ai.ts). Khi BE xong endpoint
-// POST /api/analyze, chỉ cần thay nội dung hàm `fetchAnalysis` bên dưới —
-// toàn bộ UI (Board, WinRateBar) không cần sửa gì.
+// Kết nối tới Backend API POST /api/v1/analyze để lấy đánh giá (Win rate) và gợi ý (Policy hints).
 
 import { useEffect, useState } from "react";
 import type { AiAnalysisResult } from "../types/ai";
