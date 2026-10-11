@@ -36,7 +36,7 @@ import OnlineHub from "./components/Online/OnlineHub";
 import ProfilePage from "./components/Profile/ProfilePage";
 import AddFriend from "./components/AddFriend";
 import { GameResultModal } from "./components/GameResult/GameResultModal";
-import { calculateScore } from "./utils/scoring";
+import { calculateScore } from "./utils/goRules";
 
 type Screen = "menu" | "game" | "login" | "register";
 
@@ -315,10 +315,12 @@ function GameApp() {
         whiteScore: backendScore.white,
         blackTerritory: 0,
         whiteTerritory: 0,
+        blackStonesOnBoard: 0,
+        whiteStonesOnBoard: 0,
         territoryMap: []
       } as ReturnType<typeof calculateScore>;
     }
-    return calculateScore(gameState.board, gameState.capturedBlack, gameState.capturedWhite);
+    return calculateScore(gameState.board, gameState.capturedBlack, gameState.capturedWhite, 7.5);
   }, [gameState.isFinished, gameState.board, gameState.capturedBlack, gameState.capturedWhite, backendScore]);
 
   const handleSelectMode = (nextMode: GameMode) => {
@@ -584,11 +586,14 @@ function GameApp() {
             else if (cell === "white") whiteOnBoard++;
           }
         }
-        const winner = scoreResult.blackScore > scoreResult.whiteScore ? "black" : "white";
+        let finalWinner: "black" | "white" = scoreResult.blackScore > scoreResult.whiteScore ? "black" : "white";
+        if (gameEndReason === "resign") {
+           finalWinner = gameState.currentPlayer === "black" ? "white" : "black";
+        }
         return (
           <GameResultModal
             open
-            winner={winner}
+            winner={finalWinner}
             reason={gameEndReason ?? "end"}
             blackScore={scoreResult.blackScore}
             whiteScore={scoreResult.whiteScore}
@@ -598,7 +603,7 @@ function GameApp() {
             whiteCaptures={gameState.capturedWhite}
             blackStonesOnBoard={blackOnBoard}
             whiteStonesOnBoard={whiteOnBoard}
-            komi={6.5}
+            komi={7.5}
             onPlayAgain={handleResetGame}
             onBackToMenu={handleBackToMenu}
           />

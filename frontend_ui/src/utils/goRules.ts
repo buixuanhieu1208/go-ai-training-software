@@ -211,7 +211,7 @@ export function tryPlaceStone(
 
 // ============================================================================
 // calculateScore — đếm điểm theo luật Trung Quốc (Area Scoring).
-//   Điểm = Vùng đất (territory) + Quân trên bàn + Quân bắt được.
+//   Điểm = Vùng đất (territory) + Quân trên bàn.
 //   Quân Trắng được cộng thêm komi (mặc định 6.5) vì đi sau.
 //   Territory được tính bằng Flood Fill: các điểm trống chỉ tiếp giáp
 //   (trực tiếp hoặc gián tiếp) với 1 màu duy nhất thuộc về màu đó.
@@ -308,13 +308,16 @@ export function calculateScore(
   // 2. Đếm quân trên bàn
   const stones = countStonesOnBoard(board);
 
-  // 3. Tính tổng điểm theo Area Scoring
-  const blackScore = blackTerritory + stones.black + capturedBlack;
-  const whiteScore = whiteTerritory + stones.white + capturedWhite + komi;
+  // 3. Tính tổng điểm theo Area Scoring (Luật Trung Quốc)
+  // Chỉ tính: Vùng đất (Territory) + Quân sống trên bàn. KHÔNG tính quân bắt được.
+  const blackScore = blackTerritory + stones.black;
+  const whiteScore = whiteTerritory + stones.white + komi;
 
   return {
     blackTerritory,
     whiteTerritory,
+    blackStonesOnBoard: stones.black,
+    whiteStonesOnBoard: stones.white,
     blackScore,
     whiteScore,
     territoryMap,

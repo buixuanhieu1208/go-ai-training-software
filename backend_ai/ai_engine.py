@@ -11,27 +11,46 @@ from utils.game_logic import GoState
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
+# Trọng số đã train nằm trong thư mục weights/
 WEIGHTS_BY_SIZE = {
-    9: os.path.join(BASE_DIR, "models", "dualcnn_9x9_final.pth"),
-    13: os.path.join(BASE_DIR, "models", "dualcnn_13x13_final.pth"),
-    19: os.path.join(BASE_DIR, "models", "dualcnn_19x19_final.pth"),
+    9:  os.path.join(BASE_DIR, "weights", "dualcnn_9x9_final.pth"),
+    13: os.path.join(BASE_DIR, "weights", "dualcnn_13x13_final.pth"),
+    19: os.path.join(BASE_DIR, "weights", "dualcnn_19x19_final.pth"),
 }
 
 DIFFICULTY_MCTS_CONFIG = {
-    "medium": {"simulations": 300, "c_puct": 1.41, "add_root_noise": True},
-    "hard": {"simulations": 1600, "c_puct": 1.25, "add_root_noise": False},
+    "medium": {"simulations": 800, "c_puct": 1.41, "add_root_noise": True},
+    "hard": {"simulations": 8000, "c_puct": 1.1, "add_root_noise": False},
 }
-EASY_ROLLOUTS_19 = 50
+EASY_ROLLOUTS_19 = 100
 EASY_MINIMAX_DEPTH = 2  # bàn 9x9/13x13
 
 
-def _infer_channels(state_dict: dict, default: int = 64) -> int:
-    """Dò số kênh ẩn thực tế của checkpoint qua shape của conv2.weight,
-    thay vì hard-code — phòng trường hợp 3 checkpoint không cùng channels."""
-    weight = state_dict.get("conv2.weight")
-    if weight is None:
-        return default
-    return int(weight.shape[0])
+def _infer_channels(state_dict: dict, default: int = 128) -> int:
+    """Dò số kênh ẩn của checkpoint từ kiến trúc ResNet (DualCNN mới).
+    Key chính xác là conv_in.weight có shape [channels, in_ch, 3, 3].
+    Fallback: thử res_blocks.0.conv1.weight nếu có.
+    """
+    w = state_dict.get("conv_in.weight")
+    if w is not None:
+        return int(w.shape[0])
+    # Fallback cho ResNet block
+    w = state_dict.get("res_blocks.0.conv1.weight")
+    if w is not None:
+        return int(w.shape[0])
+    return default
+
+
+def _infer_num_res_blocks(state_dict: dict, default: int = 5) -> int:
+    """Đếm số khối ResNet trong checkpoint bằng cách dò key 'res_blocks.N.*'."""
+    blocks = set()
+    for k in state_dict:
+        if k.startswith("res_blocks."):
+            try:
+                blocks.add(int(k.split(".")[1]))
+            except ValueError:
+                pass
+    return max(blocks) + 1 if blocks else default
 
 
 class GoAIEngine:
@@ -72,13 +91,14 @@ class GoAIEngine:
             else:
                 print(f"Cảnh báo: Chưa cấu hình đường dẫn trọng số cho bàn {size}x{size}.")
 
-            channels = _infer_channels(state_dict, default=64) if state_dict else 64
-            model = DualCNN(board_size=size, channels=channels).to(self.device)
+            channels = _infer_channels(state_dict, default=128) if state_dict else 128
+            num_res_blocks = _infer_num_res_blocks(state_dict, default=5) if state_dict else 5
+            model = DualCNN(board_size=size, channels=channels, num_res_blocks=num_res_blocks).to(self.device)
 
             if state_dict is not None:
                 try:
                     model.load_state_dict(state_dict)
-                    print(f"Thành công: Đã load kinh nghiệm cho bàn {size}x{size} (channels={channels}).")
+                    print(f"Thành công: Đã load kinh nghiệm cho bàn {size}x{size} (channels={channels}, res_blocks={num_res_blocks}).")
                     self.trained_sizes.add(size)
                 except Exception as e:
                     print(f"LỖI khi nạp trọng số vào kiến trúc DualCNN cho {size}x{size}: {e}")

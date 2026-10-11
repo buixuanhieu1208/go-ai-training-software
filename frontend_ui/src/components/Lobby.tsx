@@ -159,7 +159,7 @@ export default function Lobby() {
           </button>
 
           <button className="lobby__action-card lobby__action-card--pve" onClick={handlePlayWithAi} disabled={busy || !user}>
-            <span className="lobby__action-icon">🤖</span>
+            <span className="lobby__action-icon">⚙️</span>
             <span className="lobby__action-title">Đấu với AI</span>
             <span className="lobby__action-desc">DualCNN + MCTS Engine</span>
           </button>

@@ -2,7 +2,7 @@
 // Hook đóng vai trò "cổng kết nối" tới AI Engine (Policy + Value + MCTS) ở Backend.
 // Kết nối tới Backend API POST /api/v1/analyze để lấy đánh giá (Win rate) và gợi ý (Policy hints).
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AiAnalysisResult } from "../types/ai";
 import type { BoardMatrix } from "../types/go";
 
@@ -40,6 +40,10 @@ export interface UseAiAnalysisReturn {
   setHintsEnabled: (enabled: boolean) => void;
 }
 
+// Hệ số EMA — càng nhỏ thì thanh chuyển động càng mượt (nhưng phản ứng chậm hơn).
+// 0.35 là giá trị cân bằng: phản ứng đủ nhanh sau 2-3 nước nhưng không giật cục.
+const EMA_ALPHA = 0.35;
+
 export function useAiAnalysis(
   board: BoardMatrix,
   currentPlayer: "black" | "white",
@@ -49,15 +53,29 @@ export function useAiAnalysis(
   const [isThinking, setIsThinking] = useState(false);
   const [hintsEnabled, setHintsEnabled] = useState(true);
 
+  // Giữ smoothed winrate giữa các request để tránh thanh nhảy giật cục.
+  const smoothedWinRate = useRef<number>(0.5);
+
   useEffect(() => {
     let cancelled = false;
     setIsThinking(true);
 
     fetchAnalysis(board, currentPlayer).then((result) => {
-      if (!cancelled) {
-        setAnalysis(result);
-        setIsThinking(false);
-      }
+      if (cancelled) return;
+
+      // Áp EMA: smoothed = alpha * rawNew + (1-alpha) * smoothedOld
+      // Clamp [0.05, 0.95] để thanh không bao giờ chạm 0% hay 100% — tránh gây
+      // hiểu lầm "ván đã kết thúc" khi thực ra AI chỉ đánh giá tạm thời.
+      const raw = result.valueEstimate.blackWinRate ?? 0.5;
+      const clamped = Math.max(0.05, Math.min(0.95, raw));
+      smoothedWinRate.current =
+        EMA_ALPHA * clamped + (1 - EMA_ALPHA) * smoothedWinRate.current;
+
+      setAnalysis({
+        ...result,
+        valueEstimate: { blackWinRate: smoothedWinRate.current },
+      });
+      setIsThinking(false);
     });
 
     return () => {

@@ -51,6 +51,8 @@ export interface GameState {
 export interface ScoreResult {
   blackTerritory: number;
   whiteTerritory: number;
+  blackStonesOnBoard: number;
+  whiteStonesOnBoard: number;
   blackScore: number;
   whiteScore: number;
   /** Các điểm thuộc vùng đất của ai, dùng để tô màu overlay trên bàn cờ */

@@ -13,9 +13,9 @@ export interface RegisterProps {
   onAuthenticated?: () => void;
 }
 
-export function Register({ onBackHome, onGoLogin }: RegisterProps) {
+export function Register({ onBackHome, onGoLogin, onAuthenticated }: RegisterProps) {
   const navigate = useNavigate();
-  const { registerWithEmail } = useAuth();
+  const { registerWithEmail, signInWithGoogle } = useAuth();
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -58,7 +58,28 @@ export function Register({ onBackHome, onGoLogin }: RegisterProps) {
     setSubmitting(true);
     try {
       await registerWithEmail(email, password, username);
-      navigate("/online");
+      if (onAuthenticated) {
+        onAuthenticated();
+      } else {
+        navigate("/online");
+      }
+    } catch (err) {
+      setError(translateAuthError(err));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setError(null);
+    setSubmitting(true);
+    try {
+      await signInWithGoogle();
+      if (onAuthenticated) {
+        onAuthenticated();
+      } else {
+        navigate("/online");
+      }
     } catch (err) {
       setError(translateAuthError(err));
     } finally {
@@ -151,6 +172,14 @@ export function Register({ onBackHome, onGoLogin }: RegisterProps) {
 
         <button type="submit" className="auth-submit" disabled={submitting}>
           {submitting ? "Đang tạo tài khoản…" : "Tạo tài khoản"}
+        </button>
+
+        <div className="auth-divider">
+          <span>hoặc</span>
+        </div>
+
+        <button type="button" className="auth-oauth" onClick={handleGoogle} disabled={submitting}>
+          <span className="auth-oauth__icon">G</span> Tiếp tục với Google
         </button>
       </form>
     </AuthLayout>

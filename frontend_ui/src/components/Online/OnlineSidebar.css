@@ -1,14 +1,18 @@
+/* src/components/Online/OnlineSidebar.css */
 .online-sidebar {
   background: var(--color-panel);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-panel);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .online-sidebar__tabs {
   display: flex;
   border-bottom: 1px solid var(--color-border);
+  background: var(--color-panel-raised);
 }
 
 .online-sidebar__tab {
@@ -17,18 +21,24 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: var(--space-sm) 4px;
+  padding: 12px 4px 10px;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
   color: var(--color-text-muted);
   font-size: 11px;
+  font-weight: 500;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
+  letter-spacing: 0.01em;
 }
 
 .online-sidebar__tab-icon {
-  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
 }
 
 .online-sidebar__tab:hover {
@@ -42,6 +52,7 @@
 
 .online-sidebar__content {
   padding: var(--space-md);
-  max-height: 640px;
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }

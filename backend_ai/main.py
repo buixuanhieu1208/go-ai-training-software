@@ -58,6 +58,23 @@ except ValueError:
 logger.info("Đang khởi động AI Engine cho Server...")
 ai_engine = GoAIEngine(simulations=MCTS_SIMULATIONS)
 
+# Khởi tạo KataGo (nếu có)
+from utils.katago_client import KataGoClient
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+KATAGO_PATH = os.environ.get("KATAGO_PATH", os.path.join(BASE_DIR, "katago", "katago.exe"))
+KATAGO_MODEL = os.environ.get("KATAGO_MODEL", os.path.join(BASE_DIR, "katago", "model.bin.gz"))
+
+katago_client = None
+if os.path.exists(KATAGO_PATH) and os.path.exists(KATAGO_MODEL):
+    katago_config = os.path.join(BASE_DIR, "katago", "analysis_example.cfg")
+    if not os.path.exists(katago_config):
+        katago_config = None
+    katago_client = KataGoClient(KATAGO_PATH, KATAGO_MODEL, katago_config)
+    logger.info("✅ Đã phát hiện KataGo. Chế độ Khó (Hard) và Phân tích (Analysis) sẽ do KataGo xử lý!")
+else:
+    logger.info("⚠️ Không tìm thấy KataGo. Sẽ sử dụng AI Python DualCNN mặc định.")
+    logger.info(f"   (Để bật KataGo, hãy tải katago.exe và model.bin.gz vào thư mục: {os.path.join(BASE_DIR, 'katago')})")
+
 
 # ============================================================================
 # Data contract — PHẢI khớp chính xác với payload Frontend gửi lên.
@@ -167,7 +184,17 @@ def get_move(req: GameStateRequest):
                 winner=winner
             )
 
-        move = ai_engine.get_best_move(state, difficulty=req.difficulty)
+        if katago_client and req.difficulty == "hard":
+            # KataGo với 60 visits: cực mạnh (trình độ chuyên nghiệp) và phản hồi siêu tốc (<0.5 giây)
+            result = katago_client.analyze(req.board, req.current_player, max_visits=60)
+            hints = result.get("policyHints", [])
+            if hints:
+                best_hint = hints[0]
+                move = (best_hint["position"]["y"], best_hint["position"]["x"])
+            else:
+                move = None
+        else:
+            move = ai_engine.get_best_move(state, difficulty=req.difficulty)
 
     except Exception as e:
         logger.exception("Lỗi khi xử lý get_move")
@@ -208,6 +235,11 @@ def analyze(req: GameStateRequest):
             "valueEstimate": {"blackWinRate": 0.5},
             "thinkingTimeMs": int((time.time() - start_time) * 1000)
         }
+
+    if katago_client:
+        result = katago_client.analyze(req.board, req.current_player, max_visits=50)
+        result["thinkingTimeMs"] = int((time.time() - start_time) * 1000)
+        return result
 
     # Lấy model của size tương ứng
     model = ai_engine._get_model(size)
@@ -259,6 +291,24 @@ def analyze(req: GameStateRequest):
         "thinkingTimeMs": int((time.time() - start_time) * 1000)
     }
 
+
+class AnalyzeFullGameRequest(BaseModel):
+    boardSize: int
+    # Lấy Schema nội bộ của file (đã định nghĩa ở dưới, nhưng cần MoveSchema).
+    # Vì MoveSchema định nghĩa ở dưới, ta có thể nhận dict thô rồi parse.
+    moveHistory: List[dict]
+
+@app.post("/api/v1/analyze_full_game")
+def analyze_full_game(req: AnalyzeFullGameRequest):
+    """
+    Sử dụng KataGo để phân tích toàn bộ lịch sử ván cờ, trả về Winrate và Hints cho TỪNG nước đi.
+    (Dùng để vẽ Winrate Graph bên Frontend).
+    """
+    if not katago_client:
+        raise HTTPException(status_code=400, detail="Tính năng này yêu cầu phải cài đặt KataGo.")
+    # Dùng số visits nhỏ gọn (vd: 50) để phân tích nhanh toàn ván.
+    results = katago_client.analyze_full_game(req.boardSize, req.moveHistory, max_visits=50)
+    return {"turns": results}
 
 # ============================================================================
 # BƯỚC 2 — Import bổ sung cho nhóm API Trọng tài (Referee) & Tính điểm (Scoring)

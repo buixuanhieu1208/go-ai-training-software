@@ -19,6 +19,8 @@ import {
   IconSpark,
 } from "./icons";
 import type { GameMode } from "../../types/mode";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import "./Sidebar.css";
 
 interface FlyoutItem {
@@ -46,6 +48,8 @@ export interface SidebarProps {
 export function Sidebar({ onSelectMode, onGoOnline, onOpenRules, onOpenLogin, onOpenRegister }: SidebarProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const containerRef = useRef<HTMLElement | null>(null);
+  const { user, profile, logout } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!activeId) return;
@@ -205,16 +209,33 @@ export function Sidebar({ onSelectMode, onGoOnline, onOpenRules, onOpenLogin, on
       </nav>
 
       <div className="sidebar__bottom">
-        <button type="button" className="sidebar__util-item">
-          <IconSearch />
-          <span className="sidebar__item-label">Tìm kiếm</span>
-        </button>
-        <button type="button" className="sidebar__signup-btn" onClick={onOpenRegister}>
-          Đăng ký
-        </button>
-        <button type="button" className="sidebar__login-btn" onClick={onOpenLogin}>
-          Đăng nhập
-        </button>
+        {user ? (
+          <>
+            <button type="button" className="sidebar__util-item" style={{ flexDirection: "row", gap: "8px", justifyContent: "flex-start", padding: "10px" }} onClick={() => navigate("/profile")}>
+              {profile?.photoURL ? (
+                <img src={profile.photoURL} alt="" style={{ width: 24, height: 24, borderRadius: "50%" }} />
+              ) : (
+                <div style={{ width: 24, height: 24, borderRadius: "50%", background: "var(--color-border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: "bold" }}>
+                  {profile?.username?.charAt(0).toUpperCase() || "?"}
+                </div>
+              )}
+              <span className="sidebar__item-label" style={{ fontWeight: 600 }}>{profile?.username || "Đang tải..."}</span>
+            </button>
+            <button type="button" className="sidebar__util-item" onClick={() => logout()}>
+              <span className="sidebar__item-label">Đăng xuất</span>
+            </button>
+          </>
+        ) : (
+          <>
+            <button type="button" className="sidebar__signup-btn" onClick={onOpenRegister}>
+              Đăng ký
+            </button>
+            <button type="button" className="sidebar__login-btn" onClick={onOpenLogin}>
+              Đăng nhập
+            </button>
+          </>
+        )}
+
         <button type="button" className="sidebar__util-item">
           <IconHelp />
           <span className="sidebar__item-label">Trợ giúp</span>

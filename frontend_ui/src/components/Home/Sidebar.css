@@ -110,6 +110,16 @@
   animation: sidebar-flyout-in 0.14s ease-out;
 }
 
+/* Invisible bridge to prevent mouseleave gap issue */
+.sidebar__flyout::before {
+  content: "";
+  position: absolute;
+  left: -20px;
+  top: -20px;
+  bottom: -20px;
+  width: 20px;
+}
+
 @keyframes sidebar-flyout-in {
   from {
     opacity: 0;

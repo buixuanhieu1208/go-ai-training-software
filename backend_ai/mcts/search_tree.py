@@ -130,7 +130,14 @@ class MCTSEngine:
             for move, p in priors.items():
                 root.children[move] = MCTSNode(move=move, parent=root, prior=p)
 
-        for _ in range(self.num_simulations):
+        import time
+        start_time = time.time()
+        time_limit = 9.0  # Limit to 9 seconds to guarantee < 10s response
+
+        for i in range(self.num_simulations):
+            if time.time() - start_time > time_limit:
+                break
+            
             node = root
             while not node.is_leaf():
                 _move, node = node.select_child(c_puct=self.c_puct)

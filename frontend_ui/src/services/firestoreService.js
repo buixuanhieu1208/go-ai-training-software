@@ -25,7 +25,7 @@ const EMPTY_BOARD = (size) =>
 function toPlayerInfo(user) {
   return {
     uid: user.uid,
-    displayName: user.displayName ?? "Người chơi ẩn danh",
+    displayName: user.username ?? user.displayName ?? "Người chơi ẩn danh",
     photoURL: user.photoURL ?? null, // BẮT BUỘC lưu để GameRoom hiển thị avatar đối thủ
     elo: user.elo ?? 1000,
   };
@@ -77,6 +77,18 @@ export async function cancelRoom(roomId) {
   }
 }
 
+/** Dọn dẹp các phòng ma (ghost rooms) do tắt trình duyệt đột ngột */
+export async function cleanupStaleRooms(uid) {
+  const q = query(
+    collection(db, "rooms"),
+    where("hostUid", "==", uid),
+    where("status", "==", "waiting")
+  );
+  const snap = await getDocs(q);
+  const batch = snap.docs.map((d) => deleteDoc(d.ref));
+  await Promise.all(batch);
+}
+
 export async function joinRoom(roomId, guestUser) {
   const guest = toPlayerInfo(guestUser);
   const roomRef = doc(db, "rooms", roomId);
@@ -106,7 +118,9 @@ export async function joinRoom(roomId, guestUser) {
         black: hostIsBlack ? host : guest,
         white: hostIsBlack ? guest : host,
       },
-      board: EMPTY_BOARD(room.boardSize),
+      blackReady: false,
+      whiteReady: false,
+      board: JSON.stringify(EMPTY_BOARD(room.boardSize)),
       currentPlayer: "black",
       capturedBlack: 0,
       capturedWhite: 0,
@@ -141,7 +155,7 @@ export async function createPveMatch(user, boardSize = 19) {
       black: player,
       white: { uid: "AI_ENGINE", displayName: "AI Engine", photoURL: null, elo: null },
     },
-    board: EMPTY_BOARD(boardSize),
+    board: JSON.stringify(EMPTY_BOARD(boardSize)),
     currentPlayer: "black",
     capturedBlack: 0,
     capturedWhite: 0,
@@ -201,7 +215,7 @@ export async function submitMove(matchId, computedResult) {
     });
 
     tx.update(matchRef, {
-      board,
+      board: JSON.stringify(board),
       currentPlayer,
       capturedBlack,
       capturedWhite,
@@ -228,6 +242,13 @@ export async function resignMatch(matchId, resigningColor) {
     status: "finished",
     winner: winnerColor,
     winMargin: null,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function abortMatch(matchId) {
+  await updateDoc(doc(db, "matches", matchId), {
+    status: "canceled",
     updatedAt: serverTimestamp(),
   });
 }
@@ -465,7 +486,9 @@ export async function acceptMatchInvite(invite, acceptingUser) {
       boardSize: invite.boardSize,
       komi: 7.5,
       players: { black: hostIsBlack ? inviter : guest, white: hostIsBlack ? guest : inviter },
-      board: EMPTY_BOARD(invite.boardSize),
+      blackReady: false,
+      whiteReady: false,
+      board: JSON.stringify(EMPTY_BOARD(invite.boardSize)),
       currentPlayer: "black",
       capturedBlack: 0,
       capturedWhite: 0,

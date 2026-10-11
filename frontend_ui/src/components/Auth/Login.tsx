@@ -13,7 +13,7 @@ export interface LoginProps {
   onAuthenticated?: () => void;
 }
 
-export function Login({ onBackHome, onGoRegister }: LoginProps) {
+export function Login({ onBackHome, onGoRegister, onAuthenticated }: LoginProps) {
   const navigate = useNavigate();
   const { loginWithEmail, signInWithGoogle } = useAuth();
 
@@ -40,7 +40,11 @@ export function Login({ onBackHome, onGoRegister }: LoginProps) {
     setSubmitting(true);
     try {
       await loginWithEmail(email, password, remember);
-      navigate("/online");
+      if (onAuthenticated) {
+        onAuthenticated();
+      } else {
+        navigate("/online");
+      }
     } catch (err) {
       setError(translateAuthError(err));
     } finally {
@@ -53,7 +57,11 @@ export function Login({ onBackHome, onGoRegister }: LoginProps) {
     setSubmitting(true);
     try {
       await signInWithGoogle();
-      navigate("/online");
+      if (onAuthenticated) {
+        onAuthenticated();
+      } else {
+        navigate("/online");
+      }
     } catch (err) {
       setError(translateAuthError(err));
     } finally {

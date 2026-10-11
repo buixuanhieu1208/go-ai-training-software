@@ -119,7 +119,7 @@ export default function GameRoom() {
                 <img src={opponent.photoURL} alt={opponent.displayName} className="game-room__opponent-avatar" />
               ) : (
                 <div className="game-room__opponent-avatar game-room__opponent-avatar--fallback">
-                  {opponent.uid === "AI_ENGINE" ? "🤖" : opponent.displayName[0]}
+                  {opponent.uid === "AI_ENGINE" ? "AI" : opponent.displayName[0]}
                 </div>
               )}
               <div>

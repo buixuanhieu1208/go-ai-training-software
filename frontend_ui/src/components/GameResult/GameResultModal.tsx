@@ -37,6 +37,8 @@ export interface GameResultModalProps {
   onPlayAgain: () => void;
   /** Callback khi bấm "Về menu" */
   onBackToMenu: () => void;
+  /** Tên người thắng (hiển thị thay vì Quân Đen/Trắng) */
+  winnerName?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -69,10 +71,13 @@ export const GameResultModal: React.FC<GameResultModalProps> = ({
   komi,
   onPlayAgain,
   onBackToMenu,
+  winnerName,
 }) => {
   if (!open) return null;
 
   const isBlackWin = winner === "black";
+  const defaultWinnerName = isBlackWin ? "Quân Đen" : "Quân Trắng";
+  const finalWinnerName = winnerName ? winnerName : defaultWinnerName;
 
   return (
     <div className="game-result-overlay" role="dialog" aria-modal="true">
@@ -84,7 +89,7 @@ export const GameResultModal: React.FC<GameResultModalProps> = ({
             isBlackWin ? "game-result-winner--black" : "game-result-winner--white"
           }`}
         >
-          {isBlackWin ? "Quân Đen thắng!" : "Quân Trắng thắng!"}
+          {finalWinnerName} thắng!
         </h2>
         <p className="game-result-reason">{REASON_LABEL[reason]}</p>
 
@@ -109,22 +114,21 @@ export const GameResultModal: React.FC<GameResultModalProps> = ({
               <td>{whiteStonesOnBoard}</td>
             </tr>
             <tr>
-              <td>Quân bắt được</td>
-              <td>{blackCaptures}</td>
-              <td>{whiteCaptures}</td>
-            </tr>
-            <tr>
-              <td>Komi</td>
+              <td>Komi (Điểm bù)</td>
               <td>—</td>
               <td>{komi}</td>
             </tr>
             <tr className="score-total">
-              <td>Tổng điểm</td>
+              <td>Tổng điểm (Area Score)</td>
               <td>{blackScore}</td>
               <td>{whiteScore}</td>
             </tr>
           </tbody>
         </table>
+        
+        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textAlign: 'center', marginBottom: '16px', marginTop: '-8px' }}>
+          * Đếm điểm theo Luật Trung Quốc: Điểm = Vùng đất + Quân trên bàn. (Đã bắt: Đen {blackCaptures} viên, Trắng {whiteCaptures} viên).
+        </div>
 
         {/* ---- Nút hành động ---- */}
         <div className="game-result-actions">
