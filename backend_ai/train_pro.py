@@ -72,6 +72,13 @@ def train_for_size(board_size: int, epochs=15, batch_size=64, lr=1e-3):
         return
 
     sgf_paths = [os.path.join(sgf_dir, f) for f in os.listdir(sgf_dir) if f.endswith(".sgf")]
+
+    if board_size == 19 and len(sgf_paths) > 2000:
+        import random
+        random.shuffle(sgf_paths)
+        sgf_paths = sgf_paths[:2000]
+        print(f"[*] Đã giới hạn xuống 2000 ván ngẫu nhiên để tránh tràn RAM!")
+    
     if not sgf_paths:
         print(f"[*] Bỏ qua bàn {board_size}x{board_size}: Thư mục trống.")
         return

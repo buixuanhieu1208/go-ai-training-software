@@ -1,5 +1,5 @@
 // src/App.tsx
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { AnalysisPanel } from "./components/AnalysisPanel/AnalysisPanel";
 import { useRefereeAnalysis } from "./hooks/useRefereeAnalysis";
@@ -35,6 +35,8 @@ import JoinRoom from "./components/JoinRoom";
 import OnlineHub from "./components/Online/OnlineHub";
 import ProfilePage from "./components/Profile/ProfilePage";
 import AddFriend from "./components/AddFriend";
+import { GameResultModal } from "./components/GameResult/GameResultModal";
+import { calculateScore } from "./utils/goRules";
 
 type Screen = "menu" | "game" | "login" | "register";
 
@@ -65,17 +67,20 @@ interface BackendMoveResponse {
 // ============================================================================
 function GameApp() {
   const navigate = useNavigate();
-
+  const [aiDifficulty, setAiDifficulty] = useState<"easy" | "medium" | "hard">("hard");
   const [screen, setScreen] = useState<Screen>("menu");
   const [mode, setMode] = useState<GameMode>("pvp-local");
   const [rulesOpen, setRulesOpen] = useState(false);
   const [puzzleIndex, setPuzzleIndex] = useState(0);
   const [boardSize, setBoardSize] = useState<BoardSize>(19);
   const [evePaused, setEvePaused] = useState(false);
+  // Lý do kết thúc ván + điểm từ Backend (nếu có) để hiển thị GameResultModal.
+  const [gameEndReason, setGameEndReason] = useState<"resign" | "double-pass" | "end" | null>(null);
+  const [backendScore, setBackendScore] = useState<{ black: number; white: number } | null>(null);
 
-  // === "isAiThinking": cờ ĐANG CHỜ BACKEND THẬT trả lời (khác isThinking của
-  // useAiAnalysis vốn chỉ phục vụ vòng tròn gợi ý). Đây là state cốt lõi giữ
-  // lại từ bản cũ để khoá bàn cờ / nút Undo trong lúc chờ AI Engine Python. ===
+  // === isAiThinking: Cờ báo hiệu đang chờ AI Engine Python tính nước đi. ===
+  // Khác với isHintThinking (của useAiAnalysis) chỉ dùng để hiện loading cho WinRateBar,
+  // isAiThinking dùng để khoá bàn cờ và nút Undo để người chơi không can thiệp lúc AI đang nghĩ.
   const [isAiThinking, setIsAiThinking] = useState(false);
   const aiRequestInFlight = useRef(false);
 
@@ -151,12 +156,10 @@ function GameApp() {
     !gameState.isFinished &&
     ((mode === "pve" && gameState.currentPlayer === "white") || (mode === "eve" && !evePaused));
 
-  // === LUỒNG KẾT NỐI BACKEND THẬT (khôi phục từ frontend_ui bản CŨ) ===
-  // Thay cho việc lấy nước đi từ analysis.policyHints[0] (mock nội bộ), effect
-  // này gọi thẳng POST /api/v1/get_move của Backend Python mỗi khi tới lượt
+  // === LUỒNG KẾT NỐI BACKEND THẬT (AI Engine) ===
+  // Effect này gọi thẳng POST /api/v1/get_move của Backend Python mỗi khi tới lượt
   // AI, dịch bàn cờ chữ ("black"/"white"/"empty") sang số (1/-1/0) đúng
-  // contract mà Backend đang chờ, rồi áp nước đi trả về bằng placeStone/pass
-  // — cùng cơ chế state y hệt nước đi của người chơi.
+  // contract mà Backend đang chờ, rồi áp nước đi trả về bằng placeStone/pass.
   useEffect(() => {
     if (!isAiControlledTurn || gameState.isFinished || aiRequestInFlight.current) return;
 
@@ -186,29 +189,57 @@ function GameApp() {
             board: backendBoard,
             current_player: currentPlayerNumeric,
             consecutive_passes: passes,
+            difficulty: aiDifficulty,
+            // Điều 9 (KO): Backend không giữ lịch sử giữa các request nên phải gửi điểm đang bị cấm.
+            // Backend dùng [hàng, cột] = [y, x].
+            ko_point: gameState.koPoint ? [gameState.koPoint.y, gameState.koPoint.x] : null,
           }),
         });
 
-        if (!response.ok) throw new Error(`Lỗi kết nối Backend: ${response.status}`);
+        if (!response.ok) {
+          // Lấy thông điệp lỗi Backend (vd: 422 "Thế cờ bất hợp lệ") để báo cho người chơi.
+          let detail = "";
+          try {
+            const body = await response.json();
+            detail = typeof body?.detail === "string" ? body.detail : JSON.stringify(body?.detail ?? "");
+          } catch {
+            /* body không phải JSON */
+          }
+          throw new Error(`Backend trả lỗi ${response.status}${detail ? ` — ${detail}` : ""}`);
+        }
 
         // 4. XỬ LÝ KẾT QUẢ TRẢ VỀ
         const data: BackendMoveResponse = await response.json();
 
         if (data.action === "end") {
-          const winnerName = data.winner === "black" ? "Quân Đen" : "Quân Trắng";
-          alert(`🏁 VÁN ĐẤU KẾT THÚC!\n\nĐiểm Đen: ${data.black_score}\nĐiểm Trắng: ${data.white_score}\n\n🏆 NGƯỜI CHIẾN THẮNG: ${winnerName}`);
+          // Backend kết thúc ván — lưu điểm và đánh dấu isFinished
+          setBackendScore({
+            black: data.black_score ?? 0,
+            white: data.white_score ?? 0,
+          });
+          resign();
+          setGameEndReason('end');
           return;
         } else if (data.action === "pass") {
+          const lastMove = gameState.moveHistory[gameState.moveHistory.length - 1];
+          if (lastMove && lastMove.position === null) setGameEndReason('double-pass');
           pass();
         } else if (data.action === "move" && data.row !== undefined && data.col !== undefined) {
           const success = placeStone({ x: data.col, y: data.row });
           if (!success) {
             console.warn("AI trả về nước đi không hợp lệ, tự động pass.", data);
+            const lastMove = gameState.moveHistory[gameState.moveHistory.length - 1];
+            if (lastMove && lastMove.position === null) setGameEndReason('double-pass');
             pass();
           }
         }
       } catch (error) {
         console.error("Lỗi khi kết nối với AI Engine:", error);
+        // Trước đây lỗi chỉ ghi console -> lượt vẫn của AI, bàn cờ bị khóa, người chơi không biết vì sao.
+        // Giờ báo rõ và mở lối thoát: Undo / Ván mới (EvE thì tự tạm dừng, bấm tiếp tục để thử lại).
+        if (mode === "eve") setEvePaused(true);
+        const reason = error instanceof Error ? error.message : String(error);
+        alert(`⚠️ AI không thể đi nước này.\n\n${reason}\n\nBạn có thể bấm Undo (hoàn nước) hoặc Ván mới.`);
       } finally {
         setIsAiThinking(false);
         aiRequestInFlight.current = false;
@@ -217,7 +248,7 @@ function GameApp() {
 
     fetchAiMove();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAiControlledTurn, gameState.currentPlayer, gameState.isFinished]);
+  }, [isAiControlledTurn, gameState.currentPlayer, gameState.isFinished, aiDifficulty]);
 
   const annotatedMoveHistory = useMemo(() => {
     if (!refereeResult) return gameState.moveHistory;
@@ -239,6 +270,59 @@ function GameApp() {
     setComboMessage(null);
   };
 
+  // ---- Undo: PvE hoàn 2 nước (AI + người chơi), các mode khác hoàn 1 nước ----
+  const handleUndo = useCallback(() => {
+    if (mode === "pve") {
+      // Edge case: nếu chỉ còn 1 nước trong lịch sử (người chơi đi nhưng AI chưa trả lời),
+      // chỉ undo 1 lần. Bình thường undo 2 lần (nước AI + nước người chơi).
+      const moveCount = gameState.moveHistory.length;
+      if (moveCount >= 2) {
+        undo(); // undo nước AI (trắng)
+        undo(); // undo nước người chơi (đen)
+      } else {
+        undo(); // chỉ 1 nước
+      }
+      // Reset cờ AI để tránh state cũ kích hoạt request mới sai lúc
+      aiRequestInFlight.current = false;
+    } else {
+      undo();
+    }
+  }, [mode, gameState.moveHistory.length, undo]);
+
+  // ---- Resign có gắn lý do kết thúc ----
+  const handleResign = useCallback(() => {
+    resign();
+    setGameEndReason('resign');
+  }, [resign]);
+
+  // ---- Pass có theo dõi double-pass ----
+  const handlePass = useCallback(() => {
+    // Kiểm tra xem nước pass này có gây double-pass không (kết thúc ván)
+    const lastMove = gameState.moveHistory[gameState.moveHistory.length - 1];
+    const willDoublePass = Boolean(lastMove && lastMove.position === null);
+    pass();
+    if (willDoublePass) {
+      setGameEndReason('double-pass');
+    }
+  }, [pass, gameState.moveHistory]);
+
+  // ---- Tính điểm khi ván đấu kết thúc ----
+  const scoreResult = useMemo(() => {
+    if (!gameState.isFinished) return null;
+    if (backendScore) {
+      return {
+        blackScore: backendScore.black,
+        whiteScore: backendScore.white,
+        blackTerritory: 0,
+        whiteTerritory: 0,
+        blackStonesOnBoard: 0,
+        whiteStonesOnBoard: 0,
+        territoryMap: []
+      } as ReturnType<typeof calculateScore>;
+    }
+    return calculateScore(gameState.board, gameState.capturedBlack, gameState.capturedWhite, 7.5);
+  }, [gameState.isFinished, gameState.board, gameState.capturedBlack, gameState.capturedWhite, backendScore]);
+
   const handleSelectMode = (nextMode: GameMode) => {
     // "pvp-online" KHÔNG chơi local nữa — điều hướng sang luồng Firestore thật
     // (Lobby -> chọn/tạo phòng -> GameRoom), tách hẳn khỏi useGameState local.
@@ -250,6 +334,8 @@ function GameApp() {
     setMode(nextMode);
     setEvePaused(false);
     clearEffects();
+    setGameEndReason(null);
+    setBackendScore(null);
     if (nextMode === "tsumego") {
       setPuzzleIndex(0);
     } else {
@@ -267,6 +353,8 @@ function GameApp() {
     resetGame(size);
     clearEffects();
     clearAnalysis();
+    setGameEndReason(null);
+    setBackendScore(null);
   };
 
   const handleResetGame = () => {
@@ -274,6 +362,8 @@ function GameApp() {
     setEvePaused(false);
     clearEffects();
     clearAnalysis();
+    setGameEndReason(null);
+    setBackendScore(null);
   };
 
   const header = (
@@ -292,6 +382,20 @@ function GameApp() {
           <div className="app-header__subtitle">Luyện tập &amp; phân tích thế cờ theo thời gian thực</div>
         </div>
       </div>
+
+      {screen === "game" && (mode === "pve" || mode === "eve") && (
+        <div className="app-header__board-size">
+          {(["easy", "medium", "hard"] as const).map((level) => (
+            <button
+              key={level}
+              className={`board-size-btn ${level === aiDifficulty ? "board-size-btn--active" : ""}`}
+              onClick={() => setAiDifficulty(level)}
+            >
+              {level === "easy" ? "Dễ" : level === "medium" ? "Trung bình" : "Khó"}
+            </button>
+          ))}
+        </div>
+      )}
 
       {screen === "game" && mode !== "tsumego" && (
         <div className="app-header__board-size">
@@ -455,9 +559,9 @@ function GameApp() {
         controlPanel={
           <ControlPanel
             currentPlayer={gameState.currentPlayer}
-            onUndo={undo}
-            onPass={pass}
-            onResign={resign}
+            onUndo={handleUndo}
+            onPass={handlePass}
+            onResign={handleResign}
             onReset={handleResetGame}
             canUndo={gameState.moveHistory.length > 0 && !isAiThinking}
             isFinished={gameState.isFinished}
@@ -472,6 +576,39 @@ function GameApp() {
         }
       />
       <ComboToast message={comboMessage} />
+      {gameState.isFinished && scoreResult && (() => {
+        // Đếm quân trên bàn để hiển thị chi tiết bảng điểm
+        let blackOnBoard = 0;
+        let whiteOnBoard = 0;
+        for (const row of gameState.board) {
+          for (const cell of row) {
+            if (cell === "black") blackOnBoard++;
+            else if (cell === "white") whiteOnBoard++;
+          }
+        }
+        let finalWinner: "black" | "white" = scoreResult.blackScore > scoreResult.whiteScore ? "black" : "white";
+        if (gameEndReason === "resign") {
+           finalWinner = gameState.currentPlayer === "black" ? "white" : "black";
+        }
+        return (
+          <GameResultModal
+            open
+            winner={finalWinner}
+            reason={gameEndReason ?? "end"}
+            blackScore={scoreResult.blackScore}
+            whiteScore={scoreResult.whiteScore}
+            blackTerritory={scoreResult.blackTerritory}
+            whiteTerritory={scoreResult.whiteTerritory}
+            blackCaptures={gameState.capturedBlack}
+            whiteCaptures={gameState.capturedWhite}
+            blackStonesOnBoard={blackOnBoard}
+            whiteStonesOnBoard={whiteOnBoard}
+            komi={7.5}
+            onPlayAgain={handleResetGame}
+            onBackToMenu={handleBackToMenu}
+          />
+        );
+      })()}
       {rulesModal}
       <ChatBox />
     </>

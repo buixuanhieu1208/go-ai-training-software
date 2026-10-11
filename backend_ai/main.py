@@ -58,21 +58,57 @@ except ValueError:
 logger.info("Đang khởi động AI Engine cho Server...")
 ai_engine = GoAIEngine(simulations=MCTS_SIMULATIONS)
 
+# Khởi tạo KataGo (nếu có)
+from utils.katago_client import KataGoClient
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+KATAGO_PATH = os.environ.get("KATAGO_PATH", os.path.join(BASE_DIR, "katago", "katago.exe"))
+KATAGO_MODEL = os.environ.get("KATAGO_MODEL", os.path.join(BASE_DIR, "katago", "model.bin.gz"))
+
+katago_client = None
+if os.path.exists(KATAGO_PATH) and os.path.exists(KATAGO_MODEL):
+    katago_config = os.path.join(BASE_DIR, "katago", "analysis_example.cfg")
+    if not os.path.exists(katago_config):
+        katago_config = None
+    katago_client = KataGoClient(KATAGO_PATH, KATAGO_MODEL, katago_config)
+    logger.info("✅ Đã phát hiện KataGo. Chế độ Khó (Hard) và Phân tích (Analysis) sẽ do KataGo xử lý!")
+else:
+    logger.info("⚠️ Không tìm thấy KataGo. Sẽ sử dụng AI Python DualCNN mặc định.")
+    logger.info(f"   (Để bật KataGo, hãy tải katago.exe và model.bin.gz vào thư mục: {os.path.join(BASE_DIR, 'katago')})")
+
 
 # ============================================================================
 # Data contract — PHẢI khớp chính xác với payload Frontend gửi lên.
 # ============================================================================
 class GameStateRequest(BaseModel):
-    board: List[List[int]]       # Ma trận NxN: 1 = Đen, -1 = Trắng, 0 = Trống
-    current_player: int          # 1 (Đen) hoặc -1 (Trắng)
+    board: List[List[int]]
+    current_player: int
     consecutive_passes: int = 0
     room_id: str | None = None
+    difficulty: str = "hard"
+    # Điểm đang bị cấm do luật KO (Điều 9) đối với bên đến lượt: [hàng, cột] (0-indexed).
+    # Backend không giữ lịch sử giữa các request nên Frontend phải gửi kèm để AI không đi nước bị cấm.
+    ko_point: List[int] | None = None
+
+    @field_validator("ko_point")
+    @classmethod
+    def validate_ko_point(cls, v: List[int] | None) -> List[int] | None:
+        if v is not None and len(v) != 2:
+            raise ValueError("ko_point phải có dạng [hàng, cột]")
+        return v
 
     @field_validator("current_player")
     @classmethod
     def validate_player(cls, v: int) -> int:
         if v not in (BLACK, WHITE):
             raise ValueError("current_player phải là 1 (Đen) hoặc -1 (Trắng)")
+        return v
+
+    @field_validator("difficulty")
+    @classmethod
+    def validate_difficulty(cls, v: str) -> str:
+        v = (v or "hard").lower()
+        if v not in ("easy", "medium", "hard"):
+            raise ValueError("difficulty phải là 'easy', 'medium' hoặc 'hard'")
         return v
 
     @field_validator("board")
@@ -121,9 +157,18 @@ def get_move(req: GameStateRequest):
     """
     size = len(req.board)
 
+    # Thế cờ phải hợp lệ theo Điều 5/6: không được có đám quân nào hết khí. Trước đây thế cờ xấu bị
+    # âm thầm "dọn" rồi AI đi trên một bàn cờ KHÁC bàn cờ của Frontend (nước trả về có thể rơi vào ô
+    # Frontend đang thấy có quân). Giờ báo lỗi rõ ràng để Frontend xử lý, thay vì trả nước đi sai.
+    state = GoState(size=size)
     try:
-        state = GoState(size=size)
-        state.board = req.board
+        state.load_board(req.board, sanitize=False)
+        state.set_ko_point(tuple(req.ko_point) if req.ko_point is not None else None)
+    except ValueError as e:
+        logger.warning(f"Từ chối thế cờ bất hợp lệ (room={req.room_id}): {e}")
+        raise HTTPException(status_code=422, detail=f"Thế cờ bất hợp lệ: {e}")
+
+    try:
         state.current_player = req.current_player
         state.consecutive_passes = req.consecutive_passes
 
@@ -139,7 +184,17 @@ def get_move(req: GameStateRequest):
                 winner=winner
             )
 
-        move = ai_engine.get_best_move(state)
+        if katago_client and req.difficulty == "hard":
+            # KataGo với 60 visits: cực mạnh (trình độ chuyên nghiệp) và phản hồi siêu tốc (<0.5 giây)
+            result = katago_client.analyze(req.board, req.current_player, max_visits=60)
+            hints = result.get("policyHints", [])
+            if hints:
+                best_hint = hints[0]
+                move = (best_hint["position"]["y"], best_hint["position"]["x"])
+            else:
+                move = None
+        else:
+            move = ai_engine.get_best_move(state, difficulty=req.difficulty)
 
     except Exception as e:
         logger.exception("Lỗi khi xử lý get_move")
@@ -149,6 +204,111 @@ def get_move(req: GameStateRequest):
         r, c = move
         return MoveResponse(action="move", row=r, col=c)
     return MoveResponse(action="pass")
+
+import time
+
+class AnalysisResponse(BaseModel):
+    policyHints: List[dict]
+    valueEstimate: dict
+    thinkingTimeMs: int
+
+@app.post("/api/v1/analyze", response_model=AnalysisResponse)
+def analyze(req: GameStateRequest):
+    """
+    Trả về đánh giá (value) và gợi ý (policy) của mạng nơ-ron (DualCNN) cho trạng thái hiện tại.
+    """
+    start_time = time.time()
+    size = len(req.board)
+    
+    state = GoState(size=size)
+    try:
+        state.load_board(req.board, sanitize=False)
+        state.set_ko_point(tuple(req.ko_point) if req.ko_point is not None else None)
+        state.current_player = req.current_player
+        state.consecutive_passes = req.consecutive_passes
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=f"Thế cờ bất hợp lệ: {e}")
+
+    if state.is_terminal():
+        return {
+            "policyHints": [],
+            "valueEstimate": {"blackWinRate": 0.5},
+            "thinkingTimeMs": int((time.time() - start_time) * 1000)
+        }
+
+    if katago_client:
+        result = katago_client.analyze(req.board, req.current_player, max_visits=50)
+        result["thinkingTimeMs"] = int((time.time() - start_time) * 1000)
+        return result
+
+    # Lấy model của size tương ứng
+    model = ai_engine._get_model(size)
+    
+    from models.encoder import BoardEncoder
+    encoder = BoardEncoder()
+    board_tensor = encoder.encode(state)
+    import torch
+    board_tensor = torch.tensor(board_tensor, dtype=torch.float32).unsqueeze(0).to(ai_engine.device)
+
+    with torch.no_grad():
+        policy, value = model(board_tensor)
+        policy = torch.softmax(policy, dim=1)
+        
+    policy_np = policy.cpu().numpy()[0]
+    val = value.item() # [-1, 1] cho current_player
+    
+    # Tính blackWinRate
+    # val = 1 tức là current_player thắng 100%. val = -1 tức là thua 100%.
+    current_win_rate = (val + 1.0) / 2.0
+    if state.current_player == BLACK:
+        black_win_rate = current_win_rate
+    else:
+        black_win_rate = 1.0 - current_win_rate
+
+    # Lấy top các nước đi hợp lệ
+    legal_moves = state.get_legal_moves()
+    hints = []
+    for move in legal_moves:
+        if move is None:
+            continue
+        r, c = move
+        idx = r * size + c
+        if idx < len(policy_np):
+            hints.append({
+                "position": {"x": c, "y": r},
+                "confidence": float(policy_np[idx])
+            })
+            
+    # Sắp xếp theo confidence giảm dần, lấy top 5
+    hints.sort(key=lambda x: x["confidence"], reverse=True)
+    top_hints = hints[:5]
+    for i, hint in enumerate(top_hints):
+        hint["rank"] = i + 1
+
+    return {
+        "policyHints": top_hints,
+        "valueEstimate": {"blackWinRate": black_win_rate},
+        "thinkingTimeMs": int((time.time() - start_time) * 1000)
+    }
+
+
+class AnalyzeFullGameRequest(BaseModel):
+    boardSize: int
+    # Lấy Schema nội bộ của file (đã định nghĩa ở dưới, nhưng cần MoveSchema).
+    # Vì MoveSchema định nghĩa ở dưới, ta có thể nhận dict thô rồi parse.
+    moveHistory: List[dict]
+
+@app.post("/api/v1/analyze_full_game")
+def analyze_full_game(req: AnalyzeFullGameRequest):
+    """
+    Sử dụng KataGo để phân tích toàn bộ lịch sử ván cờ, trả về Winrate và Hints cho TỪNG nước đi.
+    (Dùng để vẽ Winrate Graph bên Frontend).
+    """
+    if not katago_client:
+        raise HTTPException(status_code=400, detail="Tính năng này yêu cầu phải cài đặt KataGo.")
+    # Dùng số visits nhỏ gọn (vd: 50) để phân tích nhanh toàn ván.
+    results = katago_client.analyze_full_game(req.boardSize, req.moveHistory, max_visits=50)
+    return {"turns": results}
 
 # ============================================================================
 # BƯỚC 2 — Import bổ sung cho nhóm API Trọng tài (Referee) & Tính điểm (Scoring)

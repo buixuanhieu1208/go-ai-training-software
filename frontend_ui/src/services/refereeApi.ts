@@ -200,3 +200,19 @@ export async function runFullAnalysis(
     winMargin: score.winMargin,
   };
 }
+
+export interface TurnAnalysis {
+  valueEstimate: {
+    blackWinRate: number;
+    scoreLead: number;
+  };
+  policyHints: any[];
+}
+
+export interface AnalyzeFullGameResponse {
+  turns: TurnAnalysis[];
+}
+
+export function analyzeFullGame(boardSize: number, moveHistory: Move[]): Promise<AnalyzeFullGameResponse> {
+  return postJson<AnalyzeFullGameResponse>("/api/v1/analyze_full_game", { boardSize, moveHistory });
+}

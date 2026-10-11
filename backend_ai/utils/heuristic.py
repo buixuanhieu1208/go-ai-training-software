@@ -29,15 +29,16 @@ from utils.go_rules_core import (
     in_bounds,
 )
 
-# Trọng số các thành phần — có thể tinh chỉnh qua thực nghiệm (self-play).
+# # Trọng số các thành phần — có thể tinh chỉnh qua thực nghiệm (self-play).
 W_TERRITORY = 1.0
 W_LIBERTY = 0.6
 W_INFLUENCE = 0.5
-W_EDGE = 0.4
-W_ATARI = 1.2
+W_EDGE = 0.8       # Khai cuộc quan trọng (Góc/Biên/Trung tâm)
+W_SHAPE = 1.0      # Điểm phối hợp quân cờ (Tam giác trống, Ponnuki, Mắt tre)
+W_ATARI = 1.5      # Điểm nguy hiểm phạt nặng (Atari / Cắt)
 
-_INFLUENCE_RADIUS = 4  # bán kính lan toả ảnh hưởng (ô), giới hạn để tránh O(size^4)
-_edge_bonus_cache: dict = {}  # cache lưới trọng số góc/biên theo từng board_size
+_INFLUENCE_RADIUS = 4
+_edge_bonus_cache: dict = {}
 
 
 def _chebyshev(x1, y1, x2, y2) -> int:
@@ -45,7 +46,9 @@ def _chebyshev(x1, y1, x2, y2) -> int:
 
 
 def _compute_liberty_safety(board: Board) -> float:
-    """Σ sign(color) * (1 - e^-(libs/2)) * |group|, duyệt mỗi nhóm đúng 1 lần."""
+    """Σ sign(color) * (1 - e^-(libs/2)) * |group|.
+    Điểm nguy hiểm: Phạt nặng nếu nhóm quân lớn mà ít Khí.
+    """
     size = len(board)
     visited = set()
     score = 0.0
@@ -57,13 +60,21 @@ def _compute_liberty_safety(board: Board) -> float:
             group, liberties = find_group_and_liberties(board, {"x": x, "y": y})
             for p in group:
                 visited.add((p["x"], p["y"]))
-            safety = 1.0 - math.exp(-len(liberties) / 2.0)
+            
+            num_libs = len(liberties)
+            if num_libs <= 1:
+                safety = -2.0  # Phạt cực nặng nếu bị Atari (1 khí)
+            elif num_libs == 2:
+                safety = -0.5  # Báo động đỏ (2 khí)
+            else:
+                safety = 1.0 - math.exp(-num_libs / 2.0)
+                
             score += (1 if color == BLACK else -1) * safety * len(group)
     return score
 
 
 def _compute_influence(board: Board) -> float:
-    """Khuếch tán ảnh hưởng 2^-d từ mỗi quân, giới hạn bán kính _INFLUENCE_RADIUS."""
+    """Điểm thưởng chiến lược (Moyo / Thế lực). Khuếch tán ảnh hưởng 2^-d từ mỗi quân."""
     size = len(board)
     influence = [[0.0] * size for _ in range(size)]
     for y in range(size):
@@ -81,31 +92,49 @@ def _compute_influence(board: Board) -> float:
                         continue
                     influence[ny][nx] += sign * (2.0 ** (-d))
     total = sum(sum(row) for row in influence)
-    return total / (size * size)  # chuẩn hoá theo diện tích
+    return total / (size * size)
 
 
 def _edge_corner_grid(size: int) -> List[List[float]]:
-    """Lưới tĩnh: góc > biên > trung tâm > tuyến 1/2 sát biên bị trừ. Cache theo size."""
+    """
+    Điểm Vị trí (Position): Góc vàng, Biên bạc, Giữa cỏ khô.
+    Đánh giá theo Tuyến đặt quân:
+    - Tuyến 1, 2: Trừ điểm (Bị ép dẹt)
+    - Tuyến 3: Lãnh thổ an toàn (+)
+    - Tuyến 4: Phát triển thế lực (+)
+    - Góc: Cộng cực lớn
+    """
     if size in _edge_bonus_cache:
         return _edge_bonus_cache[size]
 
     grid = [[0.0] * size for _ in range(size)]
     for y in range(size):
         for x in range(size):
-            dist_edge = min(x, y, size - 1 - x, size - 1 - y)  # 0 = biên ngoài cùng
+            dist_x = min(x, size - 1 - x)
+            dist_y = min(y, size - 1 - y)
+            dist_edge = min(dist_x, dist_y)  # 0 = biên ngoài cùng (Tuyến 1)
+            
+            val = 0.0
             if dist_edge == 0:
-                grid[y][x] = -0.5  # tuyến 1: quá sát biên, bị ép dẹt
+                val = -2.0    # Tuyến 1: quá thấp
             elif dist_edge == 1:
-                grid[y][x] = 1.0  # tuyến 2-3: vùng lãnh thổ vàng
+                val = -1.0    # Tuyến 2: thường bị đè
             elif dist_edge == 2:
-                grid[y][x] = 0.6  # tuyến 4: thế lực
+                val = 4.0     # Tuyến 3: Vàng (Lấy đất)
+            elif dist_edge == 3:
+                val = 3.0     # Tuyến 4: Bạc (Lấy thế)
             else:
-                grid[y][x] = 0.2  # trung tâm: ít điểm sớm, chủ yếu ảnh hưởng (đã tính ở Influence)
+                val = 0.5     # Trung tâm (Cỏ khô)
 
-            # Bonus góc thật (2 cạnh cùng gần biên)
-            corner_dist = min(x, size - 1 - x) + min(y, size - 1 - y)
-            if corner_dist <= 2:
-                grid[y][x] += 1.2
+            # Bonus Góc (3x3, 3x4, 4x4)
+            if (dist_x == 2 and dist_y == 2):
+                val += 15.0   # Điểm 3-3 (San-san)
+            elif (dist_x == 2 and dist_y == 3) or (dist_x == 3 and dist_y == 2):
+                val += 12.0   # Điểm 3-4 (Komoku)
+            elif (dist_x == 3 and dist_y == 3):
+                val += 10.0   # Điểm 4-4 (Hoshi)
+                
+            grid[y][x] = val
 
     _edge_bonus_cache[size] = grid
     return grid
@@ -115,7 +144,7 @@ def _compute_edge_bonus(board: Board) -> float:
     size = len(board)
     grid = _edge_corner_grid(size)
     empty_count = sum(row.count(EMPTY) for row in board)
-    decay = empty_count / (size * size)  # 1.0 lúc khai cuộc -> ~0 lúc tàn cuộc
+    decay = empty_count / (size * size)  # Cực kỳ quan trọng ở Khai cuộc, giảm về 0 ở Tàn cuộc
 
     score = 0.0
     for y in range(size):
@@ -128,23 +157,55 @@ def _compute_edge_bonus(board: Board) -> float:
     return (score / (size * size)) * decay
 
 
-def _compute_atari_penalty(board: Board) -> float:
+def _compute_shape_bonus(board: Board) -> float:
+    """
+    T3: Điểm phối hợp quân cờ (Shape & Synergy).
+    - Tam giác trống (Empty Triangle): Phạt
+    - Mắt tre (Bamboo Joint): Thưởng
+    - Ponnuki (Hoa 4 cánh): Thưởng lớn
+    """
     size = len(board)
-    visited = set()
-    penalty = 0.0
-    for y in range(size):
-        for x in range(size):
-            color = board[y][x]
-            if color == EMPTY or (x, y) in visited:
-                continue
-            group, liberties = find_group_and_liberties(board, {"x": x, "y": y})
-            for p in group:
-                visited.add((p["x"], p["y"]))
-            if len(liberties) == 1:  # Atari
-                sign = 1 if color == BLACK else -1
-                penalty += sign * (len(group) ** 2)
-    # penalty > 0 nghĩa là NHÓM ĐEN đang bị atari nhiều hơn -> bất lợi cho Đen
-    return -penalty  # đổi dấu để "Đen bị atari nhiều" kéo điểm Đen xuống
+    score = 0.0
+
+    # 1. Tam giác trống (Empty Triangle) - Hình cờ xấu (-5 điểm)
+    # Khối 2x2 chứa đúng 3 quân cùng màu và 1 ô trống.
+    for y in range(size - 1):
+        for x in range(size - 1):
+            colors = [board[y][x], board[y][x+1], board[y+1][x], board[y+1][x+1]]
+            blacks = colors.count(BLACK)
+            whites = colors.count(WHITE)
+            empties = colors.count(EMPTY)
+            
+            if empties == 1:
+                if blacks == 3: score -= 5.0   # Đen đi lỗi -> Điểm Đen giảm
+                elif whites == 3: score += 5.0 # Trắng đi lỗi -> Điểm Đen tăng
+
+    # 2. Mắt tre ngang (Bamboo Joint) (+10 điểm)
+    for y in range(size - 1):
+        for x in range(size - 2):
+            c1, c2, c3 = board[y][x], board[y][x+1], board[y][x+2]
+            c4, c5, c6 = board[y+1][x], board[y+1][x+1], board[y+1][x+2]
+            if c1 == c3 == c4 == c6 != EMPTY and c2 == EMPTY and c5 == EMPTY:
+                score += 10.0 if c1 == BLACK else -10.0
+
+    # 3. Mắt tre dọc
+    for y in range(size - 2):
+        for x in range(size - 1):
+            c1, c2 = board[y][x], board[y][x+1]
+            c3, c4 = board[y+1][x], board[y+1][x+1]
+            c5, c6 = board[y+2][x], board[y+2][x+1]
+            if c1 == c2 == c5 == c6 != EMPTY and c3 == EMPTY and c4 == EMPTY:
+                score += 10.0 if c1 == BLACK else -10.0
+
+    # 4. Ponnuki (Hoa 4 cánh bao quanh 1 ô trống) (+30 điểm)
+    for y in range(1, size - 1):
+        for x in range(1, size - 1):
+            if board[y][x] == EMPTY:
+                up, dn, lf, rt = board[y-1][x], board[y+1][x], board[y][x-1], board[y][x+1]
+                if up == dn == lf == rt != EMPTY:
+                    score += 30.0 if up == BLACK else -30.0
+
+    return score / (size * size)
 
 
 def evaluate_heuristic(board: Board, current_player: int, komi: float = 7.5) -> float:
@@ -162,8 +223,8 @@ def evaluate_heuristic(board: Board, current_player: int, komi: float = 7.5) -> 
         + W_LIBERTY * _compute_liberty_safety(board) / (len(board) ** 2)
         + W_INFLUENCE * _compute_influence(board)
         + W_EDGE * _compute_edge_bonus(board)
-        + W_ATARI * _compute_atari_penalty(board) / (len(board) ** 2)
+        + W_SHAPE * _compute_shape_bonus(board)
     )
 
     value_black_pov = math.tanh(raw)
-    return value_black_pov if current_player == BLACK else -value_black_pov
+    return value_black_pov if current_player == BLACK else -value_black_pov

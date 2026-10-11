@@ -49,7 +49,10 @@ const FEATURES: { icon: React.ReactNode; title: string; description: string }[] 
   },
 ];
 
+import { useAuth } from "../../contexts/AuthContext";
+
 export function Home({ onSelectMode, onGoOnline, onOpenRules, onOpenLogin, onOpenRegister }: HomeProps) {
+  const { user } = useAuth();
   const teaserPuzzle = MOCK_TSUMEGO_PUZZLES[0];
   const teaserBoard = useMemo(() => {
     const parsed = parseSgf(teaserPuzzle.sgf);
@@ -78,9 +81,15 @@ export function Home({ onSelectMode, onGoOnline, onOpenRules, onOpenLogin, onOpe
               tất cả trên một bàn cờ hiểu luật, hiểu khí, và biết bắt quân.
             </p>
             <div className="home-hero__cta home-anim home-anim--4">
-              <button className="home-btn home-btn--primary home-btn--lg" onClick={onOpenRegister} type="button">
-                Đăng ký miễn phí
-              </button>
+              {!user ? (
+                <button className="home-btn home-btn--primary home-btn--lg" onClick={onOpenRegister} type="button">
+                  Đăng ký miễn phí
+                </button>
+              ) : (
+                <button className="home-btn home-btn--primary home-btn--lg" onClick={onGoOnline} type="button">
+                  Chơi trực tuyến ngay
+                </button>
+              )}
               <button className="home-btn home-btn--ghost home-btn--lg" onClick={onOpenRules} type="button">
                 Xem luật chơi
               </button>

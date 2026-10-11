@@ -1,7 +1,7 @@
 // src/hooks/useMatch.js
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { db } from "../firebase";
-import { doc, onSnapshot, collection, query, orderBy } from "firebase/firestore";
+import { doc, onSnapshot, collection, query, orderBy, updateDoc } from "firebase/firestore";
 import { submitMove, setAiThinking, resignMatch } from "../services/firestoreService";
 import { computeNextBoard } from "../utils/goRules";
 
@@ -25,9 +25,22 @@ export function useMatch(matchId, myUid) {
 
   // --- Lắng nghe trạng thái sống của ván đấu ---
   useEffect(() => {
-    if (!matchId) return;
+    if (!matchId) {
+      setMatch(null);
+      setMoveHistory([]);
+      setLoading(false);
+      return;
+    }
     const unsub = onSnapshot(doc(db, "matches", matchId), (snap) => {
-      setMatch(snap.exists() ? { id: snap.id, ...snap.data() } : null);
+      if (snap.exists()) {
+        const data = snap.data();
+        if (typeof data.board === "string") {
+          data.board = JSON.parse(data.board);
+        }
+        setMatch({ id: snap.id, ...data });
+      } else {
+        setMatch(null);
+      }
       setLoading(false);
     });
     return unsub;
@@ -81,6 +94,14 @@ export function useMatch(matchId, myUid) {
     if (match.players.white?.uid === myUid) return "white";
     return null;
   }, [match, myUid]);
+
+  useEffect(() => {
+    if (!matchId || !myUid || !match || !myColor) return;
+    const readyField = myColor === "black" ? "blackReady" : "whiteReady";
+    if (match[readyField] !== true) {
+      updateDoc(doc(db, "matches", matchId), { [readyField]: true }).catch(console.error);
+    }
+  }, [matchId, myUid, match?.blackReady, match?.whiteReady, myColor]);
 
   const opponentColor = myColor === "black" ? "white" : myColor === "white" ? "black" : null;
   const opponent = match && opponentColor ? match.players[opponentColor] : null;
@@ -157,18 +178,22 @@ export function useMatch(matchId, myUid) {
       const { board: nextBoard, capturedCount, capturedPositions, isCapture } = result;
       const nextPlayer = myColor === "black" ? "white" : "black";
 
+      const nextConsecutivePasses = position ? 0 : match.consecutivePasses + 1;
+      const isFinished = nextConsecutivePasses >= 2;
+
       try {
         await submitMove(matchId, {
           board: nextBoard,
           currentPlayer: nextPlayer,
           capturedBlack: match.capturedBlack + (myColor === "black" ? capturedCount : 0),
           capturedWhite: match.capturedWhite + (myColor === "white" ? capturedCount : 0),
-          consecutivePasses: position ? 0 : match.consecutivePasses + 1,
+          consecutivePasses: nextConsecutivePasses,
           moveColor: myColor,
           position,
           capturedCount,
           capturedPositions,
           isCapture,
+          status: isFinished ? "finished" : "ongoing"
         });
       } catch (err) {
         setMoveError(err.message);

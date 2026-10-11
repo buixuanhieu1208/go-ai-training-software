@@ -1,18 +1,23 @@
 // src/components/Auth/Register.tsx
-// Trang Đăng ký — hiện tại chỉ là UI (chưa nối Backend xác thực thật).
-// Submit giả lập độ trễ mạng rồi coi như tạo tài khoản thành công, quay về Trang chủ.
-
+// Trang Đăng ký — Firebase Auth (Email/Password) + tạo hồ sơ users/{uid} trên Firestore.
 import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { AuthLayout } from "./AuthLayout";
+import { useAuth } from "../../contexts/AuthContext";
+import { translateAuthError, USERNAME_REGEX } from "../../services/authService";
 
 export interface RegisterProps {
   onBackHome: () => void;
   onGoLogin: () => void;
-  onAuthenticated: () => void;
+  /** Giữ để tương thích App.tsx — điều hướng sau đăng ký do component tự xử lý (/online). */
+  onAuthenticated?: () => void;
 }
 
 export function Register({ onBackHome, onGoLogin, onAuthenticated }: RegisterProps) {
-  const [name, setName] = useState("");
+  const navigate = useNavigate();
+  const { registerWithEmail, signInWithGoogle } = useAuth();
+
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -21,12 +26,16 @@ export function Register({ onBackHome, onGoLogin, onAuthenticated }: RegisterPro
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!name.trim() || !email.trim() || !password || !confirmPassword) {
+    if (!username.trim() || !email.trim() || !password || !confirmPassword) {
       setError("Vui lòng điền đầy đủ thông tin.");
+      return;
+    }
+    if (!USERNAME_REGEX.test(username.trim())) {
+      setError("Username gồm 3–20 ký tự: chữ cái không dấu, số, dấu gạch dưới (_) hoặc dấu chấm (.).");
       return;
     }
     if (!/^\S+@\S+\.\S+$/.test(email)) {
@@ -46,12 +55,36 @@ export function Register({ onBackHome, onGoLogin, onAuthenticated }: RegisterPro
       return;
     }
 
-    // TODO: nối API đăng ký thật khi Backend sẵn sàng — hiện đang giả lập.
     setSubmitting(true);
-    setTimeout(() => {
+    try {
+      await registerWithEmail(email, password, username);
+      if (onAuthenticated) {
+        onAuthenticated();
+      } else {
+        navigate("/online");
+      }
+    } catch (err) {
+      setError(translateAuthError(err));
+    } finally {
       setSubmitting(false);
-      onAuthenticated();
-    }, 650);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setError(null);
+    setSubmitting(true);
+    try {
+      await signInWithGoogle();
+      if (onAuthenticated) {
+        onAuthenticated();
+      } else {
+        navigate("/online");
+      }
+    } catch (err) {
+      setError(translateAuthError(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -71,14 +104,14 @@ export function Register({ onBackHome, onGoLogin, onAuthenticated }: RegisterPro
     >
       <form className="auth-form" onSubmit={handleSubmit} noValidate>
         <label className="auth-field">
-          <span className="auth-field__label">Họ và tên</span>
+          <span className="auth-field__label">Tên người dùng (Username)</span>
           <input
             className="auth-input"
             type="text"
-            autoComplete="name"
-            placeholder="Nguyễn Văn A"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            autoComplete="username"
+            placeholder="vd: hieu_bui"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
           />
         </label>
 
@@ -139,6 +172,14 @@ export function Register({ onBackHome, onGoLogin, onAuthenticated }: RegisterPro
 
         <button type="submit" className="auth-submit" disabled={submitting}>
           {submitting ? "Đang tạo tài khoản…" : "Tạo tài khoản"}
+        </button>
+
+        <div className="auth-divider">
+          <span>hoặc</span>
+        </div>
+
+        <button type="button" className="auth-oauth" onClick={handleGoogle} disabled={submitting}>
+          <span className="auth-oauth__icon">G</span> Tiếp tục với Google
         </button>
       </form>
     </AuthLayout>

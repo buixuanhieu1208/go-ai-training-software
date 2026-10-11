@@ -1,51 +1,35 @@
 // src/hooks/useAiAnalysis.ts
 // Hook đóng vai trò "cổng kết nối" tới AI Engine (Policy + Value + MCTS) ở Backend.
-// Ở Tuần 1, BE chưa sẵn sàng nên ta trả về dữ liệu giả lập (mock) có cùng shape
-// với response thật trong tương lai (xem src/types/ai.ts). Khi BE xong endpoint
-// POST /api/analyze, chỉ cần thay nội dung hàm `fetchAnalysis` bên dưới —
-// toàn bộ UI (Board, WinRateBar) không cần sửa gì.
+// Kết nối tới Backend API POST /api/v1/analyze để lấy đánh giá (Win rate) và gợi ý (Policy hints).
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AiAnalysisResult } from "../types/ai";
 import type { BoardMatrix } from "../types/go";
 
-const MOCK_LATENCY_MS = 400;
 
 async function fetchAnalysis(
   board: BoardMatrix,
   currentPlayer: "black" | "white"
 ): Promise<AiAnalysisResult> {
-  // TODO(BE integration): thay đoạn dưới bằng:
-  // const res = await fetch(`${API_BASE_URL}/api/analyze`, {
-  //   method: "POST",
-  //   headers: { "Content-Type": "application/json" },
-  //   body: JSON.stringify({ board, currentPlayer }),
-  // });
-  // return res.json();
-
-  await new Promise((r) => setTimeout(r, MOCK_LATENCY_MS));
-
-  const size = board.length;
-  const emptyPositions: { x: number; y: number }[] = [];
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      if (board[y][x] === "empty") emptyPositions.push({ x, y });
-    }
+  const res = await fetch("http://localhost:8000/api/v1/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      board: board.map((row) =>
+        row.map((cell) => (cell === "black" ? 1 : cell === "white" ? -1 : 0))
+      ),
+      current_player: currentPlayer === "black" ? 1 : -1,
+    }),
+  });
+  if (!res.ok) {
+    console.error("Lỗi khi phân tích bằng AI:", await res.text());
+    return {
+      policyHints: [],
+      valueEstimate: { blackWinRate: 0.5 },
+      thinkingTimeMs: 0,
+    };
   }
-  const hintCount = Math.min(5, emptyPositions.length);
-  const shuffled = [...emptyPositions].sort(() => Math.random() - 0.5);
-
-  return {
-    policyHints: shuffled.slice(0, hintCount).map((position, i) => ({
-      position,
-      confidence: Math.max(0.15, 1 - i * 0.18 - Math.random() * 0.1),
-      rank: i + 1,
-    })),
-    valueEstimate: {
-      blackWinRate: currentPlayer === "black" ? 0.5 + Math.random() * 0.1 : 0.5 - Math.random() * 0.1,
-    },
-    thinkingTimeMs: MOCK_LATENCY_MS,
-  };
+  return res.json();
 }
 
 export interface UseAiAnalysisReturn {
@@ -56,6 +40,10 @@ export interface UseAiAnalysisReturn {
   setHintsEnabled: (enabled: boolean) => void;
 }
 
+// Hệ số EMA — càng nhỏ thì thanh chuyển động càng mượt (nhưng phản ứng chậm hơn).
+// 0.35 là giá trị cân bằng: phản ứng đủ nhanh sau 2-3 nước nhưng không giật cục.
+const EMA_ALPHA = 0.35;
+
 export function useAiAnalysis(
   board: BoardMatrix,
   currentPlayer: "black" | "white",
@@ -65,15 +53,29 @@ export function useAiAnalysis(
   const [isThinking, setIsThinking] = useState(false);
   const [hintsEnabled, setHintsEnabled] = useState(true);
 
+  // Giữ smoothed winrate giữa các request để tránh thanh nhảy giật cục.
+  const smoothedWinRate = useRef<number>(0.5);
+
   useEffect(() => {
     let cancelled = false;
     setIsThinking(true);
 
     fetchAnalysis(board, currentPlayer).then((result) => {
-      if (!cancelled) {
-        setAnalysis(result);
-        setIsThinking(false);
-      }
+      if (cancelled) return;
+
+      // Áp EMA: smoothed = alpha * rawNew + (1-alpha) * smoothedOld
+      // Clamp [0.05, 0.95] để thanh không bao giờ chạm 0% hay 100% — tránh gây
+      // hiểu lầm "ván đã kết thúc" khi thực ra AI chỉ đánh giá tạm thời.
+      const raw = result.valueEstimate.blackWinRate ?? 0.5;
+      const clamped = Math.max(0.05, Math.min(0.95, raw));
+      smoothedWinRate.current =
+        EMA_ALPHA * clamped + (1 - EMA_ALPHA) * smoothedWinRate.current;
+
+      setAnalysis({
+        ...result,
+        valueEstimate: { blackWinRate: smoothedWinRate.current },
+      });
+      setIsThinking(false);
     });
 
     return () => {

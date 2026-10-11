@@ -1,8 +1,7 @@
 // src/hooks/useRefereeAnalysis.ts
 // Hook gọi Backend thật (backend_ai) để "trọng tài phân tích ván đấu": tính
 // điểm lãnh thổ, đếm quân ăn được, tính combo, gắn nhãn lỗi từng nước.
-// Tách riêng hoàn toàn khỏi useAiAnalysis (hook đó là Policy/Value Network
-// mock cho vòng tròn gợi ý — hai hook không đụng chạm nhau).
+// Tách riêng hoàn toàn khỏi useAiAnalysis (chỉ dùng cho đánh giá gợi ý nước đi).
 
 import { useCallback, useState } from "react";
 import type { Move } from "../types/go";
