@@ -15,7 +15,6 @@ import {
   IconLanguage,
   IconPeople,
   IconPuzzle,
-  IconSearch,
   IconSpark,
 } from "./icons";
 import type { GameMode } from "../../types/mode";
@@ -48,7 +47,7 @@ export interface SidebarProps {
 export function Sidebar({ onSelectMode, onGoOnline, onOpenRules, onOpenLogin, onOpenRegister }: SidebarProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const containerRef = useRef<HTMLElement | null>(null);
-  const { user, profile, logout } = useAuth();
+  const { user, profile, signOutUser } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -221,7 +220,7 @@ export function Sidebar({ onSelectMode, onGoOnline, onOpenRules, onOpenLogin, on
               )}
               <span className="sidebar__item-label" style={{ fontWeight: 600 }}>{profile?.username || "Đang tải..."}</span>
             </button>
-            <button type="button" className="sidebar__util-item" onClick={() => logout()}>
+            <button type="button" className="sidebar__util-item" onClick={() => signOutUser()}>
               <span className="sidebar__item-label">Đăng xuất</span>
             </button>
           </>

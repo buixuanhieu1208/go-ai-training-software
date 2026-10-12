@@ -21,15 +21,11 @@ export function IconGlobe() {
   );
 }
 
-export function IconAi() {
+export function IconTarget() {
   return (
     <svg viewBox="0 0 32 32" width="22" height="22" fill="none">
-      <rect x="9" y="9" width="14" height="14" rx="3" className="mode-icon__stroke" />
-      <circle cx="16" cy="16" r="3" className="mode-icon__fill mode-icon__fill--black" />
-      <line x1="16" y1="4" x2="16" y2="9" className="mode-icon__stroke" />
-      <line x1="16" y1="23" x2="16" y2="28" className="mode-icon__stroke" />
-      <line x1="4" y1="16" x2="9" y2="16" className="mode-icon__stroke" />
-      <line x1="23" y1="16" x2="28" y2="16" className="mode-icon__stroke" />
+      <circle cx="16" cy="16" r="11" className="mode-icon__stroke" />
+      <circle cx="16" cy="16" r="5" className="mode-icon__fill mode-icon__fill--black" />
     </svg>
   );
 }
@@ -81,8 +77,10 @@ export function IconGrid() {
 export function IconSpark() {
   return (
     <svg viewBox="0 0 32 32" width="22" height="22" fill="none">
-      <path d="M16 3 L16 14 M16 18 L16 29 M3 16 L10 16 M22 16 L29 16" className="mode-icon__stroke" strokeLinecap="round" />
-      <circle cx="16" cy="16" r="4" className="mode-icon__fill mode-icon__fill--black" />
+      <circle cx="16" cy="16" r="10" className="mode-icon__stroke" />
+      <circle cx="16" cy="16" r="3" className="mode-icon__fill mode-icon__fill--black" />
+      <line x1="16" y1="2" x2="16" y2="30" className="mode-icon__stroke" />
+      <line x1="2" y1="16" x2="30" y2="16" className="mode-icon__stroke" />
     </svg>
   );
 }

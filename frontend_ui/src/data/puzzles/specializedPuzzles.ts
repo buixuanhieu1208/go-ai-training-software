@@ -1,0 +1,173 @@
+// src/data/puzzles/specializedPuzzles.ts
+// Tuyển tập bài tập chuyên sâu theo 2 chủ đề quan trọng:
+// 1. Cướp cờ - Ko (Ko Fights, Ko Threats, Direct & Picnic Ko)
+// 2. Quan tử - Yose (Endgame Technique, Sente Yose, Monkey Jump, Đếm mục)
+// Bổ sung đầy đủ cho hệ thống 4 chủ đề: Sống/Chết, Cướp cờ, Quan tử, Khai cuộc.
+
+import type { TsumegoSgfPuzzle } from "../../types/training";
+
+export const KO_PUZZLES: TsumegoSgfPuzzle[] = [
+  {
+    id: "ko-001",
+    title: "Cướp cờ #1: Kích hoạt thế cờ Cướp (Direct Ko)",
+    difficulty: "beginner",
+    category: "ko",
+    topic: "ko",
+    rankGrade: "18k",
+    instruction: "Đen đi trước. Trong góc không thể tạo hai mắt độc lập, hãy khơi mào trận cướp cờ để mở ra cơ hội sống.",
+    hotspotArea: { minX: 0, maxX: 3, minY: 0, maxY: 3 },
+    hints: {
+      level1: "Khu vực góc trên bên trái (A1 đến D4).",
+      level2: "Nhập quân vào điểm giao tranh trực tiếp để kích hoạt nước bắt Ko đầu tiên.",
+    },
+    explanation: "Khi thế cờ bị bao vây không còn đủ đất tạo 2 mắt tự nhiên, đánh vào điểm Ko là biện pháp chiến thuật tối ưu. Đen bắt đầu thế cướp cờ, nếu Trắng không có đe dọa đủ lớn ở nơi khác, Đen sẽ hoàn thành việc sống nhóm quân.",
+    sgf: "(;GM[1]FF[4]SZ[9]AB[ba][ca][cb][db]AW[ab][bb][da][ea][eb][dc][cc];B[bc];W[ac];B[bb])",
+  },
+  {
+    id: "ko-002",
+    title: "Cướp cờ #2: Thế cướp một bước tiếp ứng (One-step Ko)",
+    difficulty: "intermediate",
+    category: "ko",
+    topic: "ko",
+    rankGrade: "12k",
+    instruction: "Đen đi trước. Tận dụng thiếu khí của Trắng để tạo thế cướp cờ có lợi thế hơn cho Đen.",
+    hotspotArea: { minX: 0, maxX: 4, minY: 0, maxY: 3 },
+    hints: {
+      level1: "Khu vực góc trái trên bàn cờ.",
+      level2: "Đánh vào điểm chia cắt nhãn vị của Trắng, ép đối phương vào thế cướp một bước.",
+    },
+    explanation: "Đen chủ động tạo thế cướp tiếp ứng, buộc đối phương phải tốn thêm một nước đe dọa nếu muốn hoàn tất bắt quân. Đây là kỹ năng sinh tồn then chốt trong cờ vây thực chiến.",
+    sgf: "(;GM[1]FF[4]SZ[9]AB[bb][bc][cc][dc][cd]AW[ab][ac][bd][be][ce][dd][ed];B[cb];W[ba];B[ca])",
+  },
+  {
+    id: "ko-003",
+    title: "Cướp cờ #3: Hoa kết cướp (Picnic Ko - Cướp cờ nhẹ nhàng)",
+    difficulty: "advanced",
+    category: "ko",
+    topic: "ko",
+    rankGrade: "3k",
+    instruction: "Đen đi trước. Tạo ra trận chiến Ko mà nếu thua Đen mất ít, nhưng nếu thắng sẽ tiêu diệt toàn bộ cụm quân Trắng.",
+    hotspotArea: { minX: 4, maxX: 8, minY: 0, maxY: 4 },
+    hints: {
+      level1: "Khu vực góc trên bên phải.",
+      level2: "Khai thác điểm sơ hở bên ngoài của Trắng để gài bẫy cướp cờ không rủi ro.",
+    },
+    explanation: "Hoa kết cướp (Hanami Ko) là dạng cướp cờ tuyệt hảo: một bên ung dung 'ngắm hoa thưởng ngoạn' trong khi đối phương phải đối mặt với nguy cơ sụp đổ toàn bộ đại cục.",
+    sgf: "(;GM[1]FF[4]SZ[9]AB[ed][ee][fe][ge][gd][gc][gb]AW[fd][fc][fb][fa][ec][eb];B[ea];W[db];B[da])",
+  },
+  {
+    id: "ko-004",
+    title: "Cướp cờ #4: Lợi dụng mối đe dọa Ko (Ko Threat)",
+    difficulty: "intermediate",
+    category: "ko",
+    topic: "ko",
+    rankGrade: "9k",
+    instruction: "Đen đi trước. Bẻ gãy thế phòng thủ của Trắng bằng cách nhắm vào điểm yếu chí mạng.",
+    hotspotArea: { minX: 1, maxX: 5, minY: 3, maxY: 7 },
+    hints: {
+      level1: "Khu vực sườn trung tâm bàn cờ.",
+      level2: "Đâm thẳng vào mối nối chưa liên kết vững chắc để ép Trắng vào vòng xoáy cướp cờ.",
+    },
+    explanation: "Chiến thuật cướp cờ đòi hỏi khả năng đọc trước các mối đe dọa (Ko Threat). Nước đi này vừa vặn tạo ra mối đe dọa khẩn cấp mà Trắng không thể phớt lờ.",
+    sgf: "(;GM[1]FF[4]SZ[9]AB[cc][dc][ec][dd][de][df]AW[bc][bd][be][cf][ce][bf];B[cd];W[cb];B[bb])",
+  },
+  {
+    id: "ko-005",
+    title: "Cướp cờ #5: Thế cờ vĩnh cửu và Cướp kép (Double Ko)",
+    difficulty: "advanced",
+    category: "ko",
+    topic: "ko",
+    rankGrade: "1d",
+    instruction: "Đen đi trước. Nhận biết và khai thác tình huống hai điểm cướp luân phiên.",
+    hotspotArea: { minX: 0, maxX: 4, minY: 0, maxY: 4 },
+    hints: {
+      level1: "Hai giao điểm giằng co cạnh nhau ở góc.",
+      level2: "Ăn luân phiên một trong hai điểm để duy trì trạng thái bất tử cho cụm quân.",
+    },
+    explanation: "Thế cướp kép (Double Ko) đem lại sự sống vĩnh viễn cho bên nắm quyền chủ động vì luôn có sẵn một điểm Ko khác để ăn lại bất cứ khi nào đối phương ăn điểm kia.",
+    sgf: "(;GM[1]FF[4]SZ[9]AB[ba][ca][cb][cc][dc][ec]AW[ab][bb][bc][ac][db][eb][fc];B[da];W[ea];B[ca])",
+  },
+];
+
+export const YOSE_PUZZLES: TsumegoSgfPuzzle[] = [
+  {
+    id: "yose-001",
+    title: "Quan tử #1: Kỹ thuật Nhảy khỉ (Monkey Jump) kinh điển",
+    difficulty: "intermediate",
+    category: "yose",
+    topic: "yose",
+    rankGrade: "10k",
+    instruction: "Đen đi trước. Sử dụng tuyệt kỹ Nhảy khỉ từ hàng 2 lướt xuống hàng 1 để phá sạch vùng đất biên của Trắng.",
+    hotspotArea: { minX: 2, maxX: 7, minY: 6, maxY: 8 },
+    hints: {
+      level1: "Khu vực biên dưới bàn cờ (hàng 1 và 2).",
+      level2: "Nhảy kị mã lớn (keima) từ hàng 2 cắm thẳng xuống mép bàn cờ hàng 1.",
+    },
+    explanation: "Monkey Jump (Nhảy khỉ) là đòn thu quan tàn cuộc nổi tiếng bậc nhất: Đen lướt sâu vào đất đối thủ mà Trắng không thể cắt đứt do đường biên bảo vệ. Nước đi này đem lại chênh lệch từ 8 đến 10 mục.",
+    sgf: "(;GM[1]FF[4]SZ[9]AB[df][ef][ff][gf][dg][eg][fg][gg]AW[dc][ec][fc][gc][cd][ce][cf];B[bh];W[ch];B[bi])",
+  },
+  {
+    id: "yose-002",
+    title: "Quan tử #2: Tiên thủ Quan tử (Sente Yose) thu 4 mục",
+    difficulty: "beginner",
+    category: "yose",
+    topic: "yose",
+    rankGrade: "16k",
+    instruction: "Đen đi trước. Tìm nước đi tiên thủ (Sente) - đối phương bắt buộc phải đáp trả, giữ quyền đi tiếp.",
+    hotspotArea: { minX: 5, maxX: 8, minY: 0, maxY: 3 },
+    hints: {
+      level1: "Khu vực góc trên bên phải.",
+      level2: "Đánh sấn vào hàng 1 mép bàn cờ để đe dọa xâm nhập sâu hơn.",
+    },
+    explanation: "Trong giai đoạn thu quan, 'Tiên thủ là vua'. Đen giữ được quyền đi trước trong khi giành trọn 4 mục đất giá trị ở biên.",
+    sgf: "(;GM[1]FF[4]SZ[9]AB[cc][dc][ec][fc][gc]AW[cd][ce][cf][cg][ch];B[bg];W[cg];B[bf])",
+  },
+  {
+    id: "yose-003",
+    title: "Quan tử #3: Bẻ và Nối (Hane and Connect) chuẩn xác",
+    difficulty: "beginner",
+    category: "yose",
+    topic: "yose",
+    rankGrade: "19k",
+    instruction: "Đen đi trước. Thực hiện chuỗi nước bẻ mép biên và nối lại vững chắc để cố định ranh giới.",
+    hotspotArea: { minX: 0, maxX: 4, minY: 5, maxY: 8 },
+    hints: {
+      level1: "Mép biên góc dưới bên trái.",
+      level2: "Bẻ ở hàng 1 rồi chuẩn bị nối lại khi đối phương chặn.",
+    },
+    explanation: "Hane và Connect ở hàng 1 là cấu trúc thu quan cơ bản nhất trong cờ vây. Thực hiện đúng thời điểm ngăn đối phương bẻ ngược lại gây thiệt hại lớn về mục.",
+    sgf: "(;GM[1]FF[4]SZ[9]AB[ee][fe][ge][ed][fd][gd]AW[de][ce][be][dd][cd][bd];B[ae];W[be];B[af])",
+  },
+  {
+    id: "yose-004",
+    title: "Quan tử #4: Nước nêm phá thế (Wedge / Warikomi)",
+    difficulty: "intermediate",
+    category: "yose",
+    topic: "yose",
+    rankGrade: "7k",
+    instruction: "Đen đi trước. Nêm một quân vào khe hở giữa hai quân Trắng để tạo thế đôi đe dọa (Double Atari).",
+    hotspotArea: { minX: 2, maxX: 6, minY: 2, maxY: 6 },
+    hints: {
+      level1: "Vùng trung tâm nơi hai quân Trắng đứng cách nhau một khoảng cách lỏng lẻo.",
+      level2: "Đâm thẳng vào giữa khe hở để chia cắt đối thủ.",
+    },
+    explanation: "Đòn Warikomi (nêm vào giữa) trong tàn cuộc thường biến một vùng đất tưởng như vững chắc của đối phương thành điểm tranh chấp hoặc ăn trọn quân quan trọng.",
+    sgf: "(;GM[1]FF[4]SZ[9]AB[cc][dc][ec][fc][gc][cd][gd]AW[be][cf][cg][ch][fe][ff][fg];B[ef];W[ee];B[df])",
+  },
+  {
+    id: "yose-005",
+    title: "Quan tử #5: Đảo ngược quyền tiên thủ (Reverse Sente)",
+    difficulty: "advanced",
+    category: "yose",
+    topic: "yose",
+    rankGrade: "2k",
+    instruction: "Đen đi trước. Đánh trước vào vị trí mà nếu Trắng đi sẽ là tiên thủ của Trắng (ngăn chặn mối họa lớn).",
+    hotspotArea: { minX: 4, maxX: 8, minY: 4, maxY: 8 },
+    hints: {
+      level1: "Khu vực biên dưới bên phải.",
+      level2: "Chặn đứng mũi khoan tiên thủ của đối phương trước khi quá muộn.",
+    },
+    explanation: "Nghịch tiên thủ (Reverse Sente) có giá trị gấp đôi so with Hậu thủ thông thường, vì nó tước đi quyền tiên thủ của đối phương và bảo toàn hàng loạt mục quý giá.",
+    sgf: "(;GM[1]FF[4]SZ[9]AB[cc][bc][ac][cb][db][eb]AW[dc][ec][fc][gc][dd][ed][fd];B[fb];W[gb];B[fa])",
+  },
+];

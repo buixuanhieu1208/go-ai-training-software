@@ -13,7 +13,7 @@ const CELL_SIZE = 30;
 
 export const GoBoard: React.FC<GoBoardProps> = ({
   board,
-  currentPlayer,
+  currentPlayer: _currentPlayer,
   isThinking,
   onCellClick,
 }) => {

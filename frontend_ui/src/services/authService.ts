@@ -9,6 +9,10 @@ import {
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
+  sendPasswordResetEmail,
   type User,
 } from "firebase/auth";
 import {
@@ -228,3 +232,38 @@ export async function loginWithEmail(
 
   return profile;
 }
+
+// ============================================================================
+// ĐỔI MẬT KHẨU & QUÊN MẬT KHẨU
+// ============================================================================
+export async function changeUserPassword(currentPassword: string, newPassword: string): Promise<void> {
+  const user = auth.currentUser;
+  if (!user || !user.email) {
+    throw new AuthServiceError("Bạn chưa đăng nhập hoặc tài khoản không có email.");
+  }
+  if (newPassword.length < 6) {
+    throw new AuthServiceError("Mật khẩu mới phải có tối thiểu 6 ký tự.");
+  }
+  try {
+    const cred = EmailAuthProvider.credential(user.email, currentPassword);
+    await reauthenticateWithCredential(user, cred);
+    await updatePassword(user, newPassword);
+  } catch (err: any) {
+    if (err?.code === "auth/wrong-password" || err?.code === "auth/invalid-credential") {
+      throw new AuthServiceError("Mật khẩu hiện tại không chính xác.");
+    }
+    throw new AuthServiceError(translateAuthError(err));
+  }
+}
+
+export async function requestPasswordReset(email?: string): Promise<void> {
+  const targetEmail = (email || auth.currentUser?.email || "").trim();
+  if (!targetEmail) {
+    throw new AuthServiceError("Không tìm thấy địa chỉ email để gửi liên kết đặt lại.");
+  }
+  try {
+    await sendPasswordResetEmail(auth, targetEmail);
+  } catch (err: any) {
+    throw new AuthServiceError(translateAuthError(err));
+  }
+}

@@ -1,6 +1,6 @@
 // src/App.tsx
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { AnalysisPanel } from "./components/AnalysisPanel/AnalysisPanel";
 import { useRefereeAnalysis } from "./hooks/useRefereeAnalysis";
 import { GameLayout } from "./components/Layout/GameLayout";
@@ -9,8 +9,7 @@ import { Board } from "./components/Board/Board";
 import { WinRateBar } from "./components/WinRateBar/WinRateBar";
 import { ControlPanel } from "./components/ControlPanel/ControlPanel";
 import { MoveHistory } from "./components/MoveHistory/MoveHistory";
-import { TsumegoPractice } from "./components/Tsumego/TsumegoPractice";
-import { MOCK_TSUMEGO_PUZZLES } from "./components/Tsumego/mockTsumegoData";
+import { TsumegoHub } from "./components/Tsumego/TsumegoHub";
 import { Home } from "./components/Home/Home";
 import { Login } from "./components/Auth/Login";
 import { Register } from "./components/Auth/Register";
@@ -24,8 +23,6 @@ import { useAiAnalysis } from "./hooks/useAiAnalysis";
 import { useSound } from "./hooks/useSound";
 import type { BoardSize, FloatingScoreEffect } from "./types/go";
 import type { GameMode } from "./types/mode";
-import { BOARD_SIZES } from "./constants/board";
-import Lobby from "./components/Lobby";
 import GameRoom from "./components/GameRoom";
 import "./styles/tokens.css";
 import "./App.css";
@@ -36,7 +33,13 @@ import OnlineHub from "./components/Online/OnlineHub";
 import ProfilePage from "./components/Profile/ProfilePage";
 import AddFriend from "./components/AddFriend";
 import { GameResultModal } from "./components/GameResult/GameResultModal";
+import { GameSetupModal } from "./components/GameSetup/GameSetupModal";
+import { GameReviewModal } from "./components/Analysis/GameReviewModal";
+import { generateGameReviewReport } from "./utils/reviewEvaluator";
+import type { GameReviewReport } from "./types/review";
 import { calculateScore } from "./utils/goRules";
+import { generateSgfString, downloadSgfFile } from "./utils/sgfExporter";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 type Screen = "menu" | "game" | "login" | "register";
 
@@ -60,23 +63,56 @@ interface BackendMoveResponse {
   winner?: "black" | "white";
 }
 
+function parseRoute(pathname: string): { screen: Screen; mode: GameMode } {
+  const p = pathname.toLowerCase().replace(/\/+$/, "") || "/";
+  if (p === "/login") return { screen: "login", mode: "pvp-local" };
+  if (p === "/register") return { screen: "register", mode: "pvp-local" };
+  if (p === "/tsumego" || p === "/play/tsumego") return { screen: "game", mode: "tsumego" };
+  if (p === "/pve" || p === "/play/pve") return { screen: "game", mode: "pve" };
+  if (p === "/pvp" || p === "/play/pvp" || p === "/play/pvp-local" || p === "/play/local") return { screen: "game", mode: "pvp-local" };
+  if (p === "/eve" || p === "/play/eve") return { screen: "game", mode: "eve" };
+  return { screen: "menu", mode: "pvp-local" };
+}
+
 // ============================================================================
 // GameApp — TOÀN BỘ logic chơi cục bộ (local state, không qua Firestore):
-// pvp-local, pve (gọi thẳng Backend AI), eve, tsumego. Đây chính là nội dung
-// component App cũ, chỉ đổi tên để nhường "App" cho lớp Router bên dưới.
+// pvp-local, pve (gọi thẳng Backend AI), eve, tsumego. Hỗ trợ URL route
+// trực tiếp (/pve, /pvp, /eve, /tsumego) để khi F5 / refresh không bị văng về home.
 // ============================================================================
 function GameApp() {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [aiDifficulty, setAiDifficulty] = useState<"easy" | "medium" | "hard">("hard");
-  const [screen, setScreen] = useState<Screen>("menu");
-  const [mode, setMode] = useState<GameMode>("pvp-local");
+  const [playerColor, setPlayerColor] = useState<"black" | "white">("black");
+  const [ruleSet, setRuleSet] = useState<"chinese" | "japanese">("chinese");
+  const [screen, setScreen] = useState<Screen>(() => parseRoute(window.location.pathname).screen);
+  const [mode, setMode] = useState<GameMode>(() => parseRoute(window.location.pathname).mode);
+  const [isGameStarted, setIsGameStarted] = useState(false);
+  const [isSetupModalOpen, setIsSetupModalOpen] = useState(
+    () => parseRoute(window.location.pathname).screen === "game" && parseRoute(window.location.pathname).mode !== "tsumego"
+  );
+
+  // Đồng bộ state khi URL trên thanh địa chỉ thay đổi (F5, bấm nút browser back/forward, direct link)
+  useEffect(() => {
+    const parsed = parseRoute(location.pathname);
+    setScreen(parsed.screen);
+    setMode(parsed.mode);
+    if (parsed.screen === "game" && parsed.mode !== "tsumego") {
+      setIsSetupModalOpen((prev) => (!isGameStarted ? true : prev));
+    } else {
+      setIsSetupModalOpen(false);
+    }
+  }, [location.pathname, isGameStarted]);
   const [rulesOpen, setRulesOpen] = useState(false);
-  const [puzzleIndex, setPuzzleIndex] = useState(0);
   const [boardSize, setBoardSize] = useState<BoardSize>(19);
   const [evePaused, setEvePaused] = useState(false);
   // Lý do kết thúc ván + điểm từ Backend (nếu có) để hiển thị GameResultModal.
   const [gameEndReason, setGameEndReason] = useState<"resign" | "double-pass" | "end" | null>(null);
   const [backendScore, setBackendScore] = useState<{ black: number; white: number } | null>(null);
+  // Modal Review & Phân tích chuyên sâu ván đấu (Winrate Graph, Quality dots, Variations)
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [reviewReport, setReviewReport] = useState<GameReviewReport | null>(null);
 
   // === isAiThinking: Cờ báo hiệu đang chờ AI Engine Python tính nước đi. ===
   // Khác với isHintThinking (của useAiAnalysis) chỉ dùng để hiện loading cho WinRateBar,
@@ -150,11 +186,14 @@ function GameApp() {
   }, [gameState.moveHistory, play]);
 
   // ---- Xác định khi nào lượt đi hiện tại thuộc về AI Engine Backend ----
-  // PvE: chỉ lượt Trắng do AI đảm nhiệm (người chơi luôn cầm Đen).
+  // PvE: AI đảm nhiệm bên đối diện playerColor.
   // EvE: cả 2 bên đều do AI đảm nhiệm, trừ khi đang tạm dừng (evePaused).
+  // Chỉ kích hoạt khi ván đấu đã được người chơi bấm Bắt đầu (isGameStarted).
+  const isPveAiTurn = mode === "pve" && gameState.currentPlayer !== playerColor;
   const isAiControlledTurn =
+    isGameStarted &&
     !gameState.isFinished &&
-    ((mode === "pve" && gameState.currentPlayer === "white") || (mode === "eve" && !evePaused));
+    ((mode === "pve" && isPveAiTurn) || (mode === "eve" && !evePaused));
 
   // === LUỒNG KẾT NỐI BACKEND THẬT (AI Engine) ===
   // Effect này gọi thẳng POST /api/v1/get_move của Backend Python mỗi khi tới lượt
@@ -259,9 +298,23 @@ function GameApp() {
     }));
   }, [gameState.moveHistory, refereeResult]);
 
+  // Tự động sinh báo cáo đánh giá ván cờ (Game Review Report) để cập nhật màu chất lượng nước đi
+  useEffect(() => {
+    if (gameState.moveHistory.length > 0) {
+      generateGameReviewReport(boardSize, gameState.moveHistory)
+        .then((rep) => setReviewReport(rep))
+        .catch(() => {});
+    } else {
+      setReviewReport(null);
+    }
+  }, [gameState.moveHistory.length, boardSize]);
+
   const handleAnalyzeGame = () => {
     if (gameState.moveHistory.length === 0) return;
     runAnalysis(boardSize, gameState.moveHistory);
+    generateGameReviewReport(boardSize, gameState.moveHistory)
+      .then((rep) => setReviewReport(rep))
+      .catch(() => {});
   };
 
   const clearEffects = () => {
@@ -309,6 +362,7 @@ function GameApp() {
   // ---- Tính điểm khi ván đấu kết thúc ----
   const scoreResult = useMemo(() => {
     if (!gameState.isFinished) return null;
+    const currentKomi = ruleSet === "chinese" ? 7.5 : 6.5;
     if (backendScore) {
       return {
         blackScore: backendScore.black,
@@ -317,47 +371,111 @@ function GameApp() {
         whiteTerritory: 0,
         blackStonesOnBoard: 0,
         whiteStonesOnBoard: 0,
-        territoryMap: []
+        territoryMap: [],
+        ruleSet,
+        komi: currentKomi,
       } as ReturnType<typeof calculateScore>;
     }
-    return calculateScore(gameState.board, gameState.capturedBlack, gameState.capturedWhite, 7.5);
-  }, [gameState.isFinished, gameState.board, gameState.capturedBlack, gameState.capturedWhite, backendScore]);
+    return calculateScore(
+      gameState.board,
+      gameState.capturedBlack,
+      gameState.capturedWhite,
+      currentKomi,
+      ruleSet
+    );
+  }, [gameState.isFinished, gameState.board, gameState.capturedBlack, gameState.capturedWhite, backendScore, ruleSet]);
+
+  const handleExportSgf = useCallback(() => {
+    if (gameState.moveHistory.length === 0) return;
+    const currentKomi = ruleSet === "chinese" ? 7.5 : 6.5;
+    const pBlack = mode === "pve" ? (playerColor === "black" ? "Bạn" : "AI Engine") : "Người chơi 1 (Đen)";
+    const pWhite = mode === "pve" ? (playerColor === "white" ? "Bạn" : "AI Engine") : "Người chơi 2 (Trắng)";
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const sgf = generateSgfString({
+      boardSize,
+      moveHistory: gameState.moveHistory,
+      playerBlack: pBlack,
+      playerWhite: pWhite,
+      ruleSet,
+      komi: currentKomi,
+      result: gameState.isFinished
+        ? (scoreResult ? (scoreResult.blackScore > scoreResult.whiteScore ? "B+Win" : "W+Win") : "Resign")
+        : "In Progress",
+      date: dateStr,
+    });
+    downloadSgfFile(`ky_pho_${dateStr}_van_dau.sgf`, sgf);
+  }, [boardSize, gameState.moveHistory, gameState.isFinished, mode, playerColor, ruleSet, scoreResult]);
 
   const handleSelectMode = (nextMode: GameMode) => {
-    // "pvp-online" KHÔNG chơi local nữa — điều hướng sang luồng Firestore thật
-    // (Lobby -> chọn/tạo phòng -> GameRoom), tách hẳn khỏi useGameState local.
     if (nextMode === "pvp-online") {
       navigate("/online");
       return;
     }
-
-    setMode(nextMode);
     setEvePaused(false);
     clearEffects();
     setGameEndReason(null);
     setBackendScore(null);
-    if (nextMode === "tsumego") {
-      setPuzzleIndex(0);
-    } else {
-      resetGame(boardSize);
-    }
+    setMode(nextMode);
     setScreen("game");
+    setIsGameStarted(false);
+
+    if (nextMode === "tsumego") {
+      setIsSetupModalOpen(false);
+      navigate("/tsumego");
+    } else {
+      setIsSetupModalOpen(true);
+      if (nextMode === "pve") {
+        navigate("/pve");
+      } else if (nextMode === "eve") {
+        navigate("/eve");
+      } else if (nextMode === "pvp-local") {
+        navigate("/pvp");
+      }
+    }
   };
 
-  const handleBackToMenu = () => setScreen("menu");
-  const handleOpenLogin = () => setScreen("login");
-  const handleOpenRegister = () => setScreen("register");
-
-  const handleBoardSizeChange = (size: BoardSize) => {
-    setBoardSize(size);
-    resetGame(size);
+  const handleStartGame = (config: {
+    boardSize: BoardSize;
+    difficulty: "easy" | "medium" | "hard";
+    playerColor: "black" | "white";
+    ruleSet?: "chinese" | "japanese";
+  }) => {
+    setBoardSize(config.boardSize);
+    setAiDifficulty(config.difficulty);
+    setPlayerColor(config.playerColor);
+    if (config.ruleSet) {
+      setRuleSet(config.ruleSet);
+    }
+    resetGame(config.boardSize);
     clearEffects();
     clearAnalysis();
     setGameEndReason(null);
     setBackendScore(null);
+    setEvePaused(false);
+    setIsGameStarted(true);
+    setIsSetupModalOpen(false);
   };
 
+  const handleApplyOptionsMidGame = (options: {
+    difficulty: "easy" | "medium" | "hard";
+    ruleSet: "chinese" | "japanese";
+  }) => {
+    setAiDifficulty(options.difficulty);
+    setRuleSet(options.ruleSet);
+    setIsSetupModalOpen(false);
+  };
+
+  const handleBackToMenu = () => {
+    setIsSetupModalOpen(false);
+    setIsGameStarted(false);
+    navigate("/");
+  };
+  const handleOpenLogin = () => navigate("/login");
+  const handleOpenRegister = () => navigate("/register");
+
   const handleResetGame = () => {
+    setIsSetupModalOpen(true);
+    setIsGameStarted(false);
     resetGame(boardSize);
     setEvePaused(false);
     clearEffects();
@@ -383,36 +501,33 @@ function GameApp() {
         </div>
       </div>
 
-      {screen === "game" && (mode === "pve" || mode === "eve") && (
-        <div className="app-header__board-size">
-          {(["easy", "medium", "hard"] as const).map((level) => (
-            <button
-              key={level}
-              className={`board-size-btn ${level === aiDifficulty ? "board-size-btn--active" : ""}`}
-              onClick={() => setAiDifficulty(level)}
-            >
-              {level === "easy" ? "Dễ" : level === "medium" ? "Trung bình" : "Khó"}
-            </button>
-          ))}
-        </div>
-      )}
-
       {screen === "game" && mode !== "tsumego" && (
-        <div className="app-header__board-size">
-          {BOARD_SIZES.map((size) => (
-            <button
-              key={size}
-              className={`board-size-btn ${size === boardSize ? "board-size-btn--active" : ""}`}
-              onClick={() => handleBoardSizeChange(size)}
-            >
-              {size}×{size}
-            </button>
-          ))}
+        <div className="app-header__right-controls">
+          <div className="app-header__info-badges">
+            <span className="app-header__info-pill">Bàn {boardSize}×{boardSize}</span>
+            {(mode === "pve" || mode === "eve") && (
+              <span className="app-header__info-pill app-header__info-pill--accent">
+                Độ khó: {aiDifficulty === "easy" ? "Dễ" : aiDifficulty === "medium" ? "Trung bình" : "Khó"}
+              </span>
+            )}
+            <span className="app-header__info-pill">
+              {ruleSet === "chinese" ? "Luật Trung Quốc" : "Luật Nhật Bản"}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            className="board-size-btn board-size-btn--setup"
+            onClick={() => setIsSetupModalOpen(true)}
+            title="Mở bảng cài đặt kích thước bàn cờ & độ khó"
+          >
+            ⚙ Tùy chọn ván đấu
+          </button>
         </div>
       )}
 
       <button className="app-header__rules-btn" onClick={() => setRulesOpen(true)} type="button" aria-label="Hướng dẫn luật chơi">
-        📖 Luật chơi
+        Luật chơi
       </button>
     </div>
   );
@@ -443,46 +558,60 @@ function GameApp() {
   }
 
   if (mode === "tsumego") {
-    const puzzle = MOCK_TSUMEGO_PUZZLES[puzzleIndex];
     return (
       <div className="game-layout">
         <GameBackdrop />
         <header className="game-layout__header">{header}</header>
-        <div className="tsumego-page">
-          <TsumegoPractice key={puzzle.id} puzzle={puzzle} onSolved={() => {}} />
-          <div className="tsumego-page__switcher">
-            {MOCK_TSUMEGO_PUZZLES.map((p, i) => (
-              <button
-                key={p.id}
-                className={`board-size-btn ${i === puzzleIndex ? "board-size-btn--active" : ""}`}
-                onClick={() => setPuzzleIndex(i)}
-              >
-                {p.title}
-              </button>
-            ))}
-          </div>
-        </div>
+        <TsumegoHub />
         {rulesModal}
         <ChatBox />
       </div>
     );
   }
 
-  const isPveAiTurn = mode === "pve" && gameState.currentPlayer === "white";
-  const boardDisabled = gameState.isFinished || mode === "eve" || isPveAiTurn || isAiThinking;
+  const boardDisabled =
+    !isGameStarted ||
+    isSetupModalOpen ||
+    gameState.isFinished ||
+    mode === "eve" ||
+    isPveAiTurn ||
+    isAiThinking;
 
   const roleLabels: { black: string; white: string } =
     mode === "pve"
-      ? { black: "Bạn", white: isAiThinking ? "AI Engine (đang suy nghĩ...)" : "AI Engine" }
+      ? {
+          black:
+            playerColor === "black"
+              ? "Bạn (Quân Đen)"
+              : isAiThinking
+              ? "AI Engine (đang suy nghĩ...)"
+              : "AI Engine (Quân Đen)",
+          white:
+            playerColor === "white"
+              ? "Bạn (Quân Trắng)"
+              : isAiThinking
+              ? "AI Engine (đang suy nghĩ...)"
+              : "AI Engine (Quân Trắng)",
+        }
       : mode === "eve"
       ? {
-          black: isAiThinking && gameState.currentPlayer === "black" ? "AI Engine (đang suy nghĩ...)" : "AI Engine",
-          white: isAiThinking && gameState.currentPlayer === "white" ? "AI Engine (đang suy nghĩ...)" : "AI Engine",
+          black:
+            isAiThinking && gameState.currentPlayer === "black"
+              ? "AI Engine 1 (đang suy nghĩ...)"
+              : "AI Engine 1 (Quân Đen)",
+          white:
+            isAiThinking && gameState.currentPlayer === "white"
+              ? "AI Engine 2 (đang suy nghĩ...)"
+              : "AI Engine 2 (Quân Trắng)",
         }
-      : { black: "Người chơi 1", white: "Người chơi 2" };
+      : { black: "Người chơi 1 (Đen)", white: "Người chơi 2 (Trắng)" };
+
+  const opponentColor = playerColor === "black" ? "white" : "black";
+  const myColor = playerColor;
 
   const stonesUsedBlack = gameState.moveHistory.filter((m) => m.color === "black" && m.position !== null).length;
   const stonesUsedWhite = gameState.moveHistory.filter((m) => m.color === "white" && m.position !== null).length;
+
 
   return (
     <>
@@ -490,12 +619,17 @@ function GameApp() {
         header={header}
         moveHistory={
           <>
-            <MoveHistory moves={annotatedMoveHistory} />
+            <MoveHistory
+              moves={annotatedMoveHistory}
+              onExportSgf={handleExportSgf}
+              evaluations={reviewReport?.evaluations}
+            />
             <AnalysisPanel
               result={refereeResult}
               isLoading={isAnalyzing}
               error={analysisError}
               onAnalyze={handleAnalyzeGame}
+              onOpenReviewModal={() => setIsReviewModalOpen(true)}
               disabled={gameState.moveHistory.length === 0 || isAiThinking}
             />
           </>
@@ -519,20 +653,38 @@ function GameApp() {
           />
         }
         topBar={
-          <PlayerCard
-            color="white"
-            label={roleLabels.white}
-            capturedCount={gameState.capturedWhite}
-            isActive={!gameState.isFinished && gameState.currentPlayer === "white"}
-          />
+          mode === "pve" ? (
+            <PlayerCard
+              color={opponentColor}
+              label={roleLabels[opponentColor]}
+              capturedCount={opponentColor === "black" ? gameState.capturedBlack : gameState.capturedWhite}
+              isActive={isGameStarted && !gameState.isFinished && gameState.currentPlayer === opponentColor}
+            />
+          ) : (
+            <PlayerCard
+              color="white"
+              label={roleLabels.white}
+              capturedCount={gameState.capturedWhite}
+              isActive={isGameStarted && !gameState.isFinished && gameState.currentPlayer === "white"}
+            />
+          )
         }
         bottomBar={
-          <PlayerCard
-            color="black"
-            label={roleLabels.black}
-            capturedCount={gameState.capturedBlack}
-            isActive={!gameState.isFinished && gameState.currentPlayer === "black"}
-          />
+          mode === "pve" ? (
+            <PlayerCard
+              color={myColor}
+              label={roleLabels[myColor]}
+              capturedCount={myColor === "black" ? gameState.capturedBlack : gameState.capturedWhite}
+              isActive={isGameStarted && !gameState.isFinished && gameState.currentPlayer === myColor}
+            />
+          ) : (
+            <PlayerCard
+              color="black"
+              label={roleLabels.black}
+              capturedCount={gameState.capturedBlack}
+              isActive={isGameStarted && !gameState.isFinished && gameState.currentPlayer === "black"}
+            />
+          )
         }
         board={
           <Board
@@ -590,10 +742,29 @@ function GameApp() {
         if (gameEndReason === "resign") {
            finalWinner = gameState.currentPlayer === "black" ? "white" : "black";
         }
+        let winnerName: string | undefined = undefined;
+        if (mode === "pve") {
+          winnerName = finalWinner === playerColor ? "Bạn" : "AI Engine";
+        }
+        const currentKomi = ruleSet === "chinese" ? 7.5 : 6.5;
+        const playerBlackName =
+          mode === "pve"
+            ? playerColor === "black"
+              ? "Bạn"
+              : "AI Engine"
+            : "Người chơi 1 (Đen)";
+        const playerWhiteName =
+          mode === "pve"
+            ? playerColor === "white"
+              ? "Bạn"
+              : "AI Engine"
+            : "Người chơi 2 (Trắng)";
+
         return (
           <GameResultModal
             open
             winner={finalWinner}
+            winnerName={winnerName}
             reason={gameEndReason ?? "end"}
             blackScore={scoreResult.blackScore}
             whiteScore={scoreResult.whiteScore}
@@ -603,12 +774,43 @@ function GameApp() {
             whiteCaptures={gameState.capturedWhite}
             blackStonesOnBoard={blackOnBoard}
             whiteStonesOnBoard={whiteOnBoard}
-            komi={7.5}
+            komi={currentKomi}
+            ruleSet={ruleSet}
+            boardSize={boardSize}
+            moveHistory={gameState.moveHistory}
+            playerBlackName={playerBlackName}
+            playerWhiteName={playerWhiteName}
             onPlayAgain={handleResetGame}
             onBackToMenu={handleBackToMenu}
+            onReviewGame={() => setIsReviewModalOpen(true)}
           />
         );
       })()}
+      <GameReviewModal
+        open={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
+        boardSize={boardSize}
+        moveHistory={gameState.moveHistory}
+        playerBlackName={roleLabels.black}
+        playerWhiteName={roleLabels.white}
+        onGoToTsumego={() => {
+          setIsReviewModalOpen(false);
+          navigate("/tsumego");
+        }}
+      />
+      <GameSetupModal
+        open={isSetupModalOpen && screen === "game"}
+        mode={mode}
+        isGameStarted={isGameStarted}
+        initialBoardSize={boardSize}
+        initialDifficulty={aiDifficulty}
+        initialPlayerColor={playerColor}
+        initialRuleSet={ruleSet}
+        onStartGame={handleStartGame}
+        onBackToMenu={handleBackToMenu}
+        onClose={() => setIsSetupModalOpen(false)}
+        onApplyMidGame={handleApplyOptionsMidGame}
+      />
       {rulesModal}
       <ChatBox />
     </>
@@ -622,20 +824,27 @@ function GameApp() {
 // ============================================================================
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/online" element={<OnlineHub />} />
-          <Route path="/game/local" element={<LocalGameRoom />} />
-          <Route path="/game/:matchId" element={<GameRoom />} />
-          <Route path="/join/:roomId" element={<JoinRoom />} />
-          <Route path="/*" element={<GameApp />} />
-          <Route path="/online" element={<OnlineHub />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/add-friend/:uid" element={<AddFriend />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/online" element={<OnlineHub />} />
+            <Route path="/game/local" element={<LocalGameRoom />} />
+            <Route path="/game/:matchId" element={<GameRoom />} />
+            <Route path="/join/:roomId" element={<JoinRoom />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/add-friend/:uid" element={<AddFriend />} />
+            <Route path="/pve" element={<GameApp />} />
+            <Route path="/pvp" element={<GameApp />} />
+            <Route path="/eve" element={<GameApp />} />
+            <Route path="/tsumego" element={<GameApp />} />
+            <Route path="/login" element={<GameApp />} />
+            <Route path="/register" element={<GameApp />} />
+            <Route path="/*" element={<GameApp />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

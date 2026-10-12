@@ -240,9 +240,10 @@ function countStonesOnBoard(board: BoardMatrix): { black: number; white: number 
  */
 export function calculateScore(
   board: BoardMatrix,
-  capturedBlack: number,
-  capturedWhite: number,
-  komi: number = 6.5
+  capturedBlack: number = 0,
+  capturedWhite: number = 0,
+  komi: number = 7.5,
+  ruleSet: "chinese" | "japanese" = "chinese"
 ): ScoreResult {
   const size = board.length;
 
@@ -308,10 +309,19 @@ export function calculateScore(
   // 2. Đếm quân trên bàn
   const stones = countStonesOnBoard(board);
 
-  // 3. Tính tổng điểm theo Area Scoring (Luật Trung Quốc)
-  // Chỉ tính: Vùng đất (Territory) + Quân sống trên bàn. KHÔNG tính quân bắt được.
-  const blackScore = blackTerritory + stones.black;
-  const whiteScore = whiteTerritory + stones.white + komi;
+  // 3. Tính tổng điểm
+  let blackScore = 0;
+  let whiteScore = 0;
+
+  if (ruleSet === "japanese") {
+    // Luật Nhật Bản: Vùng đất (Territory) + Quân bắt được (Tù binh) + Komi
+    blackScore = blackTerritory + capturedBlack;
+    whiteScore = whiteTerritory + capturedWhite + komi;
+  } else {
+    // Luật Trung Quốc: Vùng đất (Territory) + Quân sống trên bàn (Area scoring) + Komi
+    blackScore = blackTerritory + stones.black;
+    whiteScore = whiteTerritory + stones.white + komi;
+  }
 
   return {
     blackTerritory,
@@ -321,5 +331,7 @@ export function calculateScore(
     blackScore,
     whiteScore,
     territoryMap,
+    ruleSet,
+    komi,
   };
 }

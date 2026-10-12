@@ -57,6 +57,8 @@ export interface ScoreResult {
   whiteScore: number;
   /** Các điểm thuộc vùng đất của ai, dùng để tô màu overlay trên bàn cờ */
   territoryMap: ("black" | "white" | "neutral")[][];
+  ruleSet?: "chinese" | "japanese";
+  komi?: number;
 }
 
 /**

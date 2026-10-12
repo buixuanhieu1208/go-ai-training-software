@@ -10,7 +10,6 @@ import {
   acceptMatchInvite,
   declineMatchInvite,
   cancelRoom,
-  cleanupStaleRooms
 } from "../../../services/firestoreService";
 import type { UserProfile } from "../../../types/user";
 import "./PlayTab.css";
@@ -67,10 +66,7 @@ export function PlayTab({ onEnterMatch }: PlayTabProps) {
   const [selectedTime, setSelectedTime] = useState<typeof TIME_CONTROLS[number]["id"]>("normal");
   const [selectedSize, setSelectedSize] = useState<typeof BOARD_SIZES[number]>(19);
 
-  useEffect(() => {
-    if (!user) return;
-    cleanupStaleRooms(user.uid).catch(console.error);
-  }, [user]);
+
 
   useEffect(() => {
     if (!profile) return;

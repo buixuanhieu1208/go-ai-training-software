@@ -30,7 +30,7 @@ export default function OnlineHub() {
     if (!matchState.match) return;
     
     // Nếu đối thủ không kết nối (bị timeout huỷ trận)
-    if (matchState.match.status === "canceled") {
+    if ((matchState.match.status as string) === "canceled") {
       setShowTimeoutModal(true);
       setActiveMatchId(null);
       return;

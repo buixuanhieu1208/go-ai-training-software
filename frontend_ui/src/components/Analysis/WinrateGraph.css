@@ -1,0 +1,203 @@
+/* src/components/Analysis/WinrateGraph.css */
+
+.winrate-graph-container {
+  position: relative;
+  width: 100%;
+  background: var(--color-panel-sunken, #161514);
+  border: 1px solid var(--color-border, #3a3835);
+  border-radius: var(--radius-md, 8px);
+  padding: 8px 10px 4px;
+  user-select: none;
+  cursor: crosshair;
+  transition: border-color 0.15s ease;
+  overflow: hidden;
+}
+
+.winrate-graph-container:hover {
+  border-color: var(--color-accent-jade, #3ecf8e);
+}
+
+.winrate-graph-svg {
+  width: 100%;
+  height: 145px;
+  display: block;
+  overflow: visible;
+}
+
+/* Background labels */
+.winrate-bg-label {
+  font-size: 10px;
+  font-family: var(--font-body, inherit);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  opacity: 0.35;
+}
+
+.winrate-bg-label--black {
+  fill: #e5e5e5;
+}
+
+.winrate-bg-label--white {
+  fill: #e0a537;
+}
+
+/* Axis lines and text */
+.winrate-axis-mid {
+  stroke: rgba(255, 255, 255, 0.15);
+  stroke-dasharray: 4 4;
+  stroke-width: 1;
+}
+
+.winrate-axis-text {
+  font-size: 9px;
+  fill: var(--color-text-muted, #8a8884);
+  font-family: var(--font-mono, monospace);
+}
+
+.winrate-axis-text--mid {
+  fill: rgba(255, 255, 255, 0.45);
+  font-weight: 600;
+}
+
+/* Dots on graph */
+.winrate-dot {
+  stroke-width: 1.5;
+  transition: transform 0.15s ease;
+}
+
+.winrate-dot--best {
+  fill: #3ecf8e;
+  stroke: #161514;
+}
+
+.winrate-dot--inaccuracy {
+  fill: #e0a537;
+  stroke: #161514;
+}
+
+.winrate-dot--blunder {
+  fill: #e74c3c;
+  stroke: #ffffff;
+}
+
+.winrate-node-pulse {
+  fill: rgba(231, 76, 60, 0.3);
+  animation: winratePulse 1.6s infinite ease-out;
+}
+
+@keyframes winratePulse {
+  0% {
+    r: 4;
+    opacity: 0.8;
+  }
+  100% {
+    r: 10;
+    opacity: 0;
+  }
+}
+
+/* Active cursor */
+.winrate-cursor-line {
+  stroke: #ffffff;
+  stroke-dasharray: 2 2;
+  stroke-width: 1.2;
+  opacity: 0.85;
+}
+
+.winrate-cursor-outer {
+  fill: none;
+  stroke: var(--color-accent-jade, #3ecf8e);
+  stroke-width: 2;
+  animation: cursorRotate 2s linear infinite;
+}
+
+.winrate-cursor-dot {
+  fill: #ffffff;
+}
+
+/* Tooltip info bar */
+.winrate-tooltip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 6px 10px;
+  background: var(--color-panel-raised, #242220);
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--color-border-subtle, #33312e);
+  font-size: 11px;
+}
+
+.winrate-tooltip__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.winrate-tooltip__turn {
+  font-weight: 600;
+  color: var(--color-text-primary, #f5f4f0);
+}
+
+.winrate-tooltip__badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.winrate-tooltip__badge--best {
+  background: rgba(62, 207, 142, 0.15);
+  color: #3ecf8e;
+  border: 1px solid rgba(62, 207, 142, 0.3);
+}
+
+.winrate-tooltip__badge--good {
+  background: rgba(62, 207, 142, 0.1);
+  color: #62d8a5;
+  border: 1px solid rgba(62, 207, 142, 0.2);
+}
+
+.winrate-tooltip__badge--inaccuracy {
+  background: rgba(224, 165, 55, 0.15);
+  color: #e0a537;
+  border: 1px solid rgba(224, 165, 55, 0.3);
+}
+
+.winrate-tooltip__badge--blunder {
+  background: rgba(231, 76, 60, 0.2);
+  color: #ff6b6b;
+  border: 1px solid rgba(231, 76, 60, 0.4);
+}
+
+.winrate-tooltip__body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.winrate-tooltip__item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.winrate-tooltip__label {
+  color: var(--color-text-muted, #8a8884);
+}
+
+.winrate-tooltip__value {
+  color: var(--color-text-primary, #f5f4f0);
+  font-family: var(--font-mono, monospace);
+  font-weight: 600;
+}
+
+.winrate-tooltip__value--black {
+  color: #3ecf8e;
+}
+
+.winrate-tooltip__value--white {
+  color: #e0a537;
+}

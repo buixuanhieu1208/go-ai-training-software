@@ -161,6 +161,127 @@
   color: var(--color-text-primary);
 }
 
+/* ---- Huy hiệu bộ luật ---- */
+.game-result-rule-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-accent-amber);
+  background: rgba(224, 165, 55, 0.12);
+  border: 1px solid rgba(224, 165, 55, 0.3);
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-md);
+}
+
+.game-result-footnote {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-align: center;
+  margin-top: calc(-1 * var(--space-sm));
+  margin-bottom: var(--space-md);
+  line-height: 1.4;
+}
+
+/* ---- Hộp xuất kỳ phổ SGF ---- */
+.game-result-export-box {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  text-align: left;
+}
+
+.game-result-export-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.game-result-export-moves {
+  color: var(--color-accent-jade);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.game-result-export-buttons {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.game-result-export-btn {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-panel-raised);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.game-result-export-btn:hover {
+  border-color: var(--color-accent-jade);
+  color: var(--color-accent-jade);
+  background: rgba(62, 207, 142, 0.08);
+}
+
+.game-result-export-btn--copy {
+  border-color: var(--color-border-subtle);
+  color: var(--color-text-secondary);
+}
+
+.game-result-export-btn--copy:hover {
+  border-color: var(--color-accent-amber);
+  color: var(--color-accent-amber);
+  background: rgba(224, 165, 55, 0.08);
+}
+
+/* ---- Hộp trích xuất bài tập cá nhân ---- */
+.game-result-extract-box {
+  margin-bottom: var(--space-md);
+}
+
+.game-result-extract-btn {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(62, 207, 142, 0.08);
+  border: 1px dashed var(--color-accent-jade);
+  color: var(--color-accent-jade);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.game-result-extract-btn:hover {
+  background: rgba(62, 207, 142, 0.16);
+  border-style: solid;
+}
+
+.game-result-extract-btn--done {
+  background: rgba(62, 207, 142, 0.2);
+  border-style: solid;
+  color: #4ade80;
+}
+
 /* ---- Keyframes ---- */
 
 @keyframes fadeIn {

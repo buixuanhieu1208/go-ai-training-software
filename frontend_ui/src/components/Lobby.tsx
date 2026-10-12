@@ -7,7 +7,6 @@ import { useAuth } from "../contexts/AuthContext";
 import { GameBackdrop } from "./Layout/GameBackdrop";
 import {
   createRoom,
-  createPveMatch,
   joinRoom,
   listenOpenRooms,
   cancelRoom,
@@ -48,21 +47,6 @@ export default function Lobby() {
       return null;
     }
     return { uid: user.uid, displayName: user.displayName ?? "Người chơi ẩn danh", photoURL: user.photoURL ?? null, elo: 1000 };
-  };
-
-  const handlePlayWithAi = async () => {
-    const player = requireAuth();
-    if (!player) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const matchId = await createPveMatch(player, BOARD_SIZE);
-      navigate(`/game/${matchId}`);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setBusy(false);
-    }
   };
 
   const handleCreateRoom = async () => {
@@ -123,7 +107,7 @@ export default function Lobby() {
         <span className="app-header__logo">碁</span>
         <div>
           <div className="app-header__name">Sảnh chờ trực tuyến</div>
-          <div className="app-header__subtitle">Ghép trận PvP hoặc chơi cùng AI Engine</div>
+          <div className="app-header__subtitle">Ghép trận PvP thi đấu trực tuyến</div>
         </div>
       </div>
 
@@ -158,11 +142,7 @@ export default function Lobby() {
             <span className="lobby__action-desc">Cùng 1 máy, 2 người thay phiên</span>
           </button>
 
-          <button className="lobby__action-card lobby__action-card--pve" onClick={handlePlayWithAi} disabled={busy || !user}>
-            <span className="lobby__action-icon">⚙️</span>
-            <span className="lobby__action-title">Đấu với AI</span>
-            <span className="lobby__action-desc">DualCNN + MCTS Engine</span>
-          </button>
+
 
           {myRoomId ? (
             <div className="lobby__action-card lobby__action-card--waiting">

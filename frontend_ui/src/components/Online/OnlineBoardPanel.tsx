@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Board } from "../Board/Board";
 import { OnlinePlayerBar } from "./OnlinePlayerBar";
 import type { UseMatchResult } from "../../types/match";

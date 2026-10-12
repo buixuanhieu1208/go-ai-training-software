@@ -48,9 +48,38 @@ body {
   margin-top: 2px;
 }
 
-.app-header__mode-switch {
+.app-header__right-controls {
   display: flex;
+  align-items: center;
   gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.app-header__info-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-panel-sunken, #161514);
+  padding: 4px 8px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--color-border);
+}
+
+.app-header__info-pill {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--color-panel-raised);
+  border: 1px solid var(--color-border-subtle);
+  white-space: nowrap;
+}
+
+.app-header__info-pill--accent {
+  color: var(--color-accent-jade);
+  background: rgba(62, 207, 142, 0.1);
+  border-color: rgba(62, 207, 142, 0.25);
 }
 
 .app-header__board-size {
@@ -126,4 +155,18 @@ body {
   border-color: var(--color-accent-jade);
   color: var(--color-accent-jade);
   background: var(--color-accent-jade-dim);
+}
+
+.board-size-btn--setup {
+  font-family: var(--font-body);
+  font-weight: 600;
+  border-color: rgba(62, 207, 142, 0.4);
+  color: var(--color-accent-jade);
+  background: rgba(62, 207, 142, 0.08);
+}
+
+.board-size-btn--setup:hover {
+  background: rgba(62, 207, 142, 0.18);
+  border-color: var(--color-accent-jade);
+  color: var(--color-accent-jade);
 }

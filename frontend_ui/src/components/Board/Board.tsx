@@ -7,6 +7,7 @@
 import { useMemo } from "react";
 import type { BoardMatrix, BoardSize, FloatingScoreEffect, Position } from "../../types/go";
 import type { PolicyHint } from "../../types/ai";
+import type { HotspotArea } from "../../types/training";
 import { STAR_POINTS, BOARD_COLUMN_LETTERS } from "../../constants/board";
 import "./Board.css";
 
@@ -21,6 +22,10 @@ export interface BoardProps {
   disabled?: boolean;
   /** Hiệu ứng "+N điểm" nổi lên khi bắt quân — xem FloatingScoreEffect (types/go.ts) */
   floatingScores?: FloatingScoreEffect[];
+  /** Vùng điểm nóng cần khoanh vùng gợi ý (AI Hint Cấp 1) */
+  hotspotArea?: HotspotArea | null;
+  /** Chuỗi nước đi biến thể do AI đề xuất cần hiển thị xem trước */
+  variationSteps?: { position: Position; stepNumber: number; color: "black" | "white" }[];
 }
 
 const CELL = 32; // px, khoảng cách giữa 2 giao điểm
@@ -35,6 +40,8 @@ export function Board({
   lastMove = null,
   disabled = false,
   floatingScores = [],
+  hotspotArea = null,
+  variationSteps = [],
 }: BoardProps) {
   const size = PADDING * 2 + CELL * (boardSize - 1);
   const starPoints = STAR_POINTS[boardSize] ?? [];
@@ -130,6 +137,27 @@ export function Board({
           />
         ))}
 
+        {/* Vùng khoanh điểm nóng (AI Hotspot Hint) */}
+        {hotspotArea && (
+          <g className="board-hotspot">
+            <rect
+              x={toCoord(hotspotArea.minX) - CELL / 2}
+              y={toCoord(hotspotArea.minY) - CELL / 2}
+              width={(hotspotArea.maxX - hotspotArea.minX + 1) * CELL}
+              height={(hotspotArea.maxY - hotspotArea.minY + 1) * CELL}
+              className="board-hotspot__rect"
+              rx={6}
+            />
+            <text
+              x={toCoord(hotspotArea.minX) - CELL / 2 + 6}
+              y={toCoord(hotspotArea.minY) - CELL / 2 + 13}
+              className="board-hotspot__label"
+            >
+              VÙNG TRỌNG TÂM
+            </text>
+          </g>
+        )}
+
         {/* Quân cờ */}
         {board.map((row, y) =>
           row.map((stone, x) => {
@@ -197,6 +225,26 @@ export function Board({
               );
             })
           )}
+
+        {/* Các quân cờ biến thể xem trước (AI Variation Steps) */}
+        {variationSteps.map((v) => (
+          <g key={`var-step-${v.stepNumber}-${v.position.x}-${v.position.y}`} className="board-variation-step">
+            <circle
+              cx={toCoord(v.position.x)}
+              cy={toCoord(v.position.y)}
+              r={CELL / 2 - 2}
+              className={`board-stone-var board-stone-var--${v.color}`}
+            />
+            <text
+              x={toCoord(v.position.x)}
+              y={toCoord(v.position.y) + 4}
+              textAnchor="middle"
+              className={`board-stone-var-text board-stone-var-text--${v.color}`}
+            >
+              {v.stepNumber}
+            </text>
+          </g>
+        ))}
 
         {/* Hiệu ứng "+N" nổi lên & mờ dần khi vừa bắt quân */}
         {floatingScores.map((f) => (

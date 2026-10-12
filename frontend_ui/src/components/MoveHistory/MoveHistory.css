@@ -12,14 +12,38 @@
   flex: 1;
 }
 
+.move-history__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-md) var(--space-sm);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
 .move-history__title {
   font-family: var(--font-display);
   font-size: 13px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--color-text-secondary);
-  padding: var(--space-md) var(--space-md) var(--space-sm);
-  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.move-history__export-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.move-history__export-btn:hover {
+  color: var(--color-accent-jade);
+  border-color: var(--color-accent-jade);
+  background: rgba(62, 207, 142, 0.08);
 }
 
 .move-history__list {
@@ -89,4 +113,82 @@
 .move-history__badge--overplay {
   background: rgba(90, 143, 217, 0.18);
   color: var(--color-accent-blue);
+}
+
+/* Quality dots and legend */
+.move-history__quality-legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background: var(--color-panel-sunken, #161514);
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legend-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.legend-dot--best {
+  background: #3ecf8e;
+}
+
+.legend-dot--inaccuracy {
+  background: #e0a537;
+}
+
+.legend-dot--blunder {
+  background: #e74c3c;
+}
+
+.move-quality-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.move-quality-dot--best {
+  background: #3ecf8e;
+  box-shadow: 0 0 4px rgba(62, 207, 142, 0.6);
+}
+
+.move-quality-dot--good {
+  background: #62d8a5;
+}
+
+.move-quality-dot--inaccuracy {
+  background: #e0a537;
+}
+
+.move-quality-dot--blunder {
+  background: #e74c3c;
+  box-shadow: 0 0 4px rgba(231, 76, 60, 0.7);
+  animation: blunderBlink 1.5s infinite ease-in-out;
+}
+
+@keyframes blunderBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.move-history__row--clickable {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.move-history__row--selected {
+  background: rgba(62, 207, 142, 0.15) !important;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
 }

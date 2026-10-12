@@ -301,14 +301,87 @@ class AnalyzeFullGameRequest(BaseModel):
 @app.post("/api/v1/analyze_full_game")
 def analyze_full_game(req: AnalyzeFullGameRequest):
     """
-    Sử dụng KataGo để phân tích toàn bộ lịch sử ván cờ, trả về Winrate và Hints cho TỪNG nước đi.
-    (Dùng để vẽ Winrate Graph bên Frontend).
+    Sử dụng KataGo (hoặc DualCNN fallback) để phân tích toàn bộ lịch sử ván cờ, trả về Winrate và Hints cho TỪNG nước đi.
+    (Dùng để vẽ Winrate Graph và Variations bên Frontend).
     """
-    if not katago_client:
-        raise HTTPException(status_code=400, detail="Tính năng này yêu cầu phải cài đặt KataGo.")
-    # Dùng số visits nhỏ gọn (vd: 50) để phân tích nhanh toàn ván.
-    results = katago_client.analyze_full_game(req.boardSize, req.moveHistory, max_visits=50)
-    return {"turns": results}
+    if katago_client:
+        try:
+            results = katago_client.analyze_full_game(req.boardSize, req.moveHistory, max_visits=50)
+            if results and len(results) > 0:
+                return {"turns": results}
+        except Exception as e:
+            logger.warning(f"KataGo analyze_full_game lỗi: {e}. Chuyển sang DualCNN fallback.")
+
+    # Fallback: duyệt qua các nước đi bằng DualCNN / GoState
+    turns = []
+    state = GoState(size=req.boardSize)
+    model = ai_engine._get_model(req.boardSize)
+    from models.encoder import BoardEncoder
+    encoder = BoardEncoder()
+    import torch
+
+    # Turn 0: Trạng thái ban đầu
+    turns.append({
+        "valueEstimate": {"blackWinRate": 0.5, "scoreLead": 0.0},
+        "policyHints": []
+    })
+
+    col_chars = "ABCDEFGHJKLMNOPQRST"
+
+    for m in req.moveHistory:
+        color = m.get("color")
+        color_int = BLACK if color == 1 or str(color).lower() == "black" else WHITE
+        pos = m.get("position")
+        if pos:
+            try:
+                state.play_move((pos["y"], pos["x"]), color=color_int)
+            except Exception:
+                pass
+
+        try:
+            board_tensor = encoder.encode(state)
+            board_tensor = torch.tensor(board_tensor, dtype=torch.float32).unsqueeze(0).to(ai_engine.device)
+            with torch.no_grad():
+                policy, value = model(board_tensor)
+                policy = torch.softmax(policy, dim=1)
+            policy_np = policy.cpu().numpy()[0]
+            val = value.item()
+            cur_wr = (val + 1.0) / 2.0
+            black_wr = cur_wr if state.current_player == BLACK else 1.0 - cur_wr
+            score_lead = (black_wr - 0.5) * 20.0
+
+            hints = []
+            legal = state.get_legal_moves()
+            for mv in legal:
+                if mv is None:
+                    continue
+                r, c = mv
+                idx = r * req.boardSize + c
+                if idx < len(policy_np):
+                    col_str = col_chars[c] if c < len(col_chars) else "?"
+                    row_str = str(req.boardSize - r)
+                    hints.append({
+                        "position": {"x": c, "y": r},
+                        "confidence": float(policy_np[idx]),
+                        "winrate": black_wr if color_int == BLACK else 1.0 - black_wr,
+                        "scoreLead": score_lead if color_int == BLACK else -score_lead,
+                        "pv": [f"{col_str}{row_str}"]
+                    })
+            hints.sort(key=lambda x: x["confidence"], reverse=True)
+            for h_i, h in enumerate(hints[:5]):
+                h["rank"] = h_i + 1
+
+            turns.append({
+                "valueEstimate": {"blackWinRate": black_wr, "scoreLead": score_lead},
+                "policyHints": hints[:5]
+            })
+        except Exception:
+            turns.append({
+                "valueEstimate": {"blackWinRate": 0.5, "scoreLead": 0.0},
+                "policyHints": []
+            })
+
+    return {"turns": turns}
 
 # ============================================================================
 # BƯỚC 2 — Import bổ sung cho nhóm API Trọng tài (Referee) & Tính điểm (Scoring)

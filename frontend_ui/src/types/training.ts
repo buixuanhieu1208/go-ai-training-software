@@ -16,11 +16,25 @@ export interface TsumegoProblem {
   instruction: string;
 }
 
+export type TsumegoCategory =
+  | "life_death"
+  | "ko"
+  | "yose"
+  | "opening"
+  | "personal"
+  | "tsumego"
+  | "endgame";
+
+export interface HotspotArea {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+}
+
 /**
  * Bài tập Tsumego định nghĩa trực tiếp bằng chuỗi SGF (dùng AB/AW để set thế
- * cờ ban đầu, và nhánh chính là lời giải đúng). Đây là dạng dữ liệu thực tế
- * dùng cho TsumegoPractice — gọn hơn TsumegoProblem vì không cần tiền xử lý
- * thành BoardMatrix, việc đó do sgfParser lo.
+ * cờ ban đầu, và nhánh chính là lời giải đúng).
  */
 export interface TsumegoSgfPuzzle {
   id: string;
@@ -28,6 +42,37 @@ export interface TsumegoSgfPuzzle {
   difficulty: TsumegoDifficulty;
   instruction: string;
   sgf: string;
+  category?: TsumegoCategory;
+  topic?: "life_death" | "ko" | "yose" | "opening" | "personal";
+  rankGrade?: string; // e.g. "20k", "12k", "5k", "1d"
+  explanation?: string;
+  hotspotArea?: HotspotArea;
+  hints?: {
+    level1?: string; // Gợi ý cấp 1: Khu vực/Vùng trọng tâm
+    level2?: string; // Gợi ý cấp 2: Hướng chiến thuật / Ý đồ
+  };
+}
+
+/** Bản ghi kết quả giải bài tập của người dùng để phục vụ thuật toán Adaptive Learning */
+export interface PuzzleSolveRecord {
+  puzzleId: string;
+  solvedAt: string;
+  durationSeconds: number;
+  attempts: number; // số lần đi nước trước khi thành công
+  hintsUsed: number; // 0: không dùng, 1-3: cấp gợi ý đã mở
+  wasCorrectFirstTry: boolean;
+}
+
+/** Hồ sơ năng lực giải thế cờ của người chơi (Adaptive Profile) */
+export interface UserLearningProfile {
+  solvedCount: number;
+  accuracyRate: number; // 0 - 100%
+  avgDurationSeconds: number;
+  currentEstimatedRank: string; // e.g. "15k", "8k", "2d"
+  recommendedDifficulty: TsumegoDifficulty;
+  consecutiveFastSolves: number;
+  consecutiveStruggles: number;
+  records: Record<string, PuzzleSolveRecord>;
 }
 
 export type RankSystem = "kyu" | "dan";

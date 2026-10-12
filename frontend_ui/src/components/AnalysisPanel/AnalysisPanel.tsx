@@ -7,6 +7,7 @@ export interface AnalysisPanelProps {
   isLoading: boolean;
   error: string | null;
   onAnalyze: () => void;
+  onOpenReviewModal?: () => void;
   disabled?: boolean;
 }
 
@@ -18,18 +19,37 @@ const MISTAKE_LABEL: Record<string, string> = {
   overplay: "Quá tay",
 };
 
-export function AnalysisPanel({ result, isLoading, error, onAnalyze, disabled }: AnalysisPanelProps) {
+export function AnalysisPanel({
+  result,
+  isLoading,
+  error,
+  onAnalyze,
+  onOpenReviewModal,
+  disabled,
+}: AnalysisPanelProps) {
   return (
     <div className="analysis-panel">
       <div className="analysis-panel__header">
-        <span className="analysis-panel__title">Trọng tài phân tích ván đấu</span>
-        <button
-          className="btn btn--secondary analysis-panel__btn"
-          onClick={onAnalyze}
-          disabled={disabled || isLoading}
-        >
-          {isLoading ? "Đang phân tích…" : "Phân tích ván đấu"}
-        </button>
+        <div className="analysis-panel__title">Trọng tài phân tích</div>
+        <div className="analysis-panel__actions">
+          {onOpenReviewModal && (
+            <button
+              className="analysis-panel__btn analysis-panel__btn--review"
+              onClick={onOpenReviewModal}
+              disabled={disabled}
+              title="Mở biểu đồ tỷ lệ thắng và biến đổi chi tiết"
+            >
+              Review ván đấu
+            </button>
+          )}
+          <button
+            className="analysis-panel__btn analysis-panel__btn--score"
+            onClick={onAnalyze}
+            disabled={disabled || isLoading}
+          >
+            {isLoading ? "Đang tính…" : "Đếm điểm"}
+          </button>
+        </div>
       </div>
 
       {error && <div className="analysis-panel__error">{error}</div>}

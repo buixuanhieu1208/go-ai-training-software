@@ -2,7 +2,6 @@
 import { useState } from "react";
 import type { Move } from "../../../types/go";
 import { analyzeFullGame } from "../../../services/refereeApi";
-import type { TurnAnalysis } from "../../../services/refereeApi";
 import {
   AreaChart,
   Area,

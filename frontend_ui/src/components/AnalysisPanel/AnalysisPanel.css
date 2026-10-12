@@ -13,20 +13,66 @@
 
 .analysis-panel__header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm);
+  flex-direction: column;
+  gap: 8px;
 }
 
 .analysis-panel__title {
   font-family: var(--font-display);
   font-size: 13px;
-  letter-spacing: 0.02em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--color-text-secondary);
 }
 
+.analysis-panel__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  width: 100%;
+}
+
 .analysis-panel__btn {
+  width: 100%;
+  padding: 6px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  text-align: center;
   white-space: nowrap;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.analysis-panel__btn--review {
+  background: rgba(62, 207, 142, 0.15);
+  color: var(--color-accent-jade);
+  border: 1px solid rgba(62, 207, 142, 0.35);
+}
+
+.analysis-panel__btn--review:hover:not(:disabled) {
+  background: var(--color-accent-jade);
+  color: #0a1a12;
+}
+
+.analysis-panel__btn--score {
+  background: var(--color-panel);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
+.analysis-panel__btn--score:hover:not(:disabled) {
+  border-color: var(--color-accent-amber);
+  color: var(--color-accent-amber);
+}
+
+.analysis-panel__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .analysis-panel__empty {
