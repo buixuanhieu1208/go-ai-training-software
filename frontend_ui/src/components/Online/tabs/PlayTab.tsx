@@ -12,50 +12,54 @@ import {
   cancelRoom,
 } from "../../../services/firestoreService";
 import type { UserProfile } from "../../../types/user";
+import type { UseMatchResult } from "../../../types/match";
 import "./PlayTab.css";
 
 interface PlayTabProps {
   onEnterMatch: (matchId: string) => void;
+  activeMatchId?: string | null;
+  matchState?: UseMatchResult | null;
+  onResign?: () => void;
+  onSwitchToAnalysis?: () => void;
 }
 
 // Hệ thống thời gian Byoyomi (秒読み) — chuẩn thi đấu cờ vây quốc tế.
-// Sau khi hết giờ chính, mỗi nước phải đi trong thời gian "đọc" (byoyomi).
-// Nếu đi kịp trong thời gian đọc, lượt đọc tiếp theo được phục hồi.
-// Thời gian phù hợp theo kích thước bàn: 9x9 ≪ 13x13 ≪ 19x19.
 const TIME_CONTROLS = [
   {
     id: "quick",
     label: "Cờ chớp",
     byoyomi: { 9: "3 phút + 5s", 13: "5 phút + 10s", 19: "10 phút + 15s" },
-    icon: "⚡",
     badge: null,
   },
   {
     id: "normal",
     label: "Nhanh",
     byoyomi: { 9: "5 phút + 10s", 13: "15 phút + 20s", 19: "20 phút + 30s" },
-    icon: "🎯",
     badge: "Phổ biến",
   },
   {
     id: "standard",
     label: "Tiêu chuẩn",
     byoyomi: { 9: "10 phút + 20s", 13: "25 phút + 30s", 19: "40 phút + 1 phút" },
-    icon: "⏱",
     badge: null,
   },
   {
     id: "classical",
     label: "Cổ điển",
     byoyomi: { 9: "20 phút + 30s", 13: "45 phút + 1 phút", 19: "90 phút + 3 phút" },
-    icon: "🏯",
     badge: null,
   },
 ] as const;
 
 const BOARD_SIZES = [9, 13, 19] as const;
 
-export function PlayTab({ onEnterMatch }: PlayTabProps) {
+export function PlayTab({
+  onEnterMatch,
+  activeMatchId,
+  matchState,
+  onResign,
+  onSwitchToAnalysis,
+}: PlayTabProps) {
   const { user, profile } = useAuth();
   const [busy, setBusy] = useState(false);
   const [waitingRoomId, setWaitingRoomId] = useState<string | null>(null);
@@ -65,8 +69,9 @@ export function PlayTab({ onEnterMatch }: PlayTabProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<typeof TIME_CONTROLS[number]["id"]>("normal");
   const [selectedSize, setSelectedSize] = useState<typeof BOARD_SIZES[number]>(19);
+  const [confirmingResign, setConfirmingResign] = useState(false);
 
-
+  const isPlaying = Boolean(activeMatchId && matchState?.match?.status === "ongoing");
 
   useEffect(() => {
     if (!profile) return;
@@ -108,6 +113,10 @@ export function PlayTab({ onEnterMatch }: PlayTabProps) {
   };
 
   const handleQuickMatch = async () => {
+    if (isPlaying) {
+      setNotice("Bạn đang trong trận đấu. Vui lòng kết thúc ván hiện tại trước khi ghép trận mới.");
+      return;
+    }
     if (!requireLogin() || !user || !profile) return;
     setNotice(null);
     setBusy(true);
@@ -126,6 +135,10 @@ export function PlayTab({ onEnterMatch }: PlayTabProps) {
   };
 
   const handleToggleFriendPicker = () => {
+    if (isPlaying) {
+      setNotice("Bạn đang trong trận đấu. Không thể thách đấu ván khác.");
+      return;
+    }
     if (!requireLogin()) return;
     setNotice(null);
     setShowFriendPicker((s) => !s);
@@ -143,6 +156,10 @@ export function PlayTab({ onEnterMatch }: PlayTabProps) {
   };
 
   const handleAcceptInvite = async (invite: any) => {
+    if (isPlaying) {
+      setNotice("Bạn đang trong ván đấu. Vui lòng kết thúc ván trước khi nhận lời mời khác.");
+      return;
+    }
     if (!user || !profile) return;
     try {
       const matchId = await acceptMatchInvite(invite, {
@@ -170,6 +187,16 @@ export function PlayTab({ onEnterMatch }: PlayTabProps) {
     }
   };
 
+  const handleResignClick = () => {
+    if (!confirmingResign) {
+      setConfirmingResign(true);
+      setTimeout(() => setConfirmingResign(false), 4000);
+    } else {
+      setConfirmingResign(false);
+      onResign?.();
+    }
+  };
+
   // Lấy mô tả byoyomi hiển thị theo kích thước bàn đang chọn
   const selectedTc = TIME_CONTROLS.find((tc) => tc.id === selectedTime)!;
   const byoyomiLabel = selectedTc.byoyomi[selectedSize];
@@ -178,105 +205,211 @@ export function PlayTab({ onEnterMatch }: PlayTabProps) {
     <div className="play-tab">
       {notice && <div className="play-tab__notice">{notice}</div>}
 
-      {/* Bộ chọn kích thước bàn */}
-      <div className="play-tab__section-label">Kích thước bàn</div>
-      <div className="play-tab__size-row">
-        {BOARD_SIZES.map((sz) => (
-          <button
-            key={sz}
-            type="button"
-            className={`play-tab__size-btn ${selectedSize === sz ? "play-tab__size-btn--active" : ""}`}
-            onClick={() => setSelectedSize(sz)}
-          >
-            {sz}×{sz}
-          </button>
-        ))}
-      </div>
-
-      {/* Bộ chọn thời gian — Byoyomi */}
-      <div className="play-tab__section-label">
-        Thời gian
-        <span className="play-tab__byoyomi-tip"> · Byoyomi (秒読み)</span>
-      </div>
-      <div className="play-tab__time-grid">
-        {TIME_CONTROLS.map((tc) => (
-          <button
-            key={tc.id}
-            type="button"
-            className={`play-tab__time-card ${selectedTime === tc.id ? "play-tab__time-card--active" : ""}`}
-            onClick={() => setSelectedTime(tc.id)}
-          >
-            {tc.badge && <span className="play-tab__time-badge">{tc.badge}</span>}
-            <span className="play-tab__time-card-icon">{tc.icon}</span>
-            <span className="play-tab__time-card-label">{tc.label}</span>
-            <span className="play-tab__time-card-sub">{tc.byoyomi[selectedSize]}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Dòng tóm tắt thời gian đã chọn */}
-      <div className="play-tab__time-summary">
-        <span className="play-tab__time-summary-icon">⏳</span>
-        <span>
-          {selectedSize}×{selectedSize} · {byoyomiLabel}/nước đọc
-        </span>
-      </div>
-
-      {/* Ghép trận */}
-      {waitingRoomId ? (
-        <div className="play-tab__waiting-wrapper">
-          <div className="play-tab__waiting">
-            <span className="play-tab__waiting-spinner" />
-            Đang tìm đối thủ...
+      {/* Khi đang thi đấu: Khóa nút tìm trận và hiển thị trạng thái trận đấu */}
+      {isPlaying ? (
+        <div className="play-tab__ongoing-card">
+          <div className="play-tab__ongoing-header">
+            <span className="play-tab__ongoing-pulse">●</span>
+            <span className="play-tab__ongoing-title">Trận đấu đang diễn ra</span>
           </div>
-          <button className="play-tab__cancel-btn" onClick={handleCancelSearch} disabled={busy}>
-            Hủy
-          </button>
+
+          <div className="play-tab__ongoing-body">
+            <div className="play-tab__ongoing-row">
+              <span className="play-tab__ongoing-label">Đối thủ:</span>
+              <span className="play-tab__ongoing-value">
+                <strong>
+                  {matchState?.opponent?.displayName ||
+                    (matchState?.myColor === "black" ? "Quân Trắng" : "Quân Đen")}
+                </strong>
+                {matchState?.opponent?.elo && (
+                  <span className="play-tab__ongoing-elo">({matchState.opponent.elo} ELO)</span>
+                )}
+              </span>
+            </div>
+
+            <div className="play-tab__ongoing-row">
+              <span className="play-tab__ongoing-label">Màu quân của bạn:</span>
+              <span className="play-tab__ongoing-value">
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: 11,
+                    height: 11,
+                    borderRadius: "50%",
+                    background: matchState?.myColor === "black" ? "#111" : "#fff",
+                    border: "1px solid rgba(255,255,255,0.4)",
+                    marginRight: 6,
+                    verticalAlign: "middle",
+                  }}
+                />
+                <strong>
+                  {matchState?.myColor === "black" ? "Quân Đen (Đi trước)" : "Quân Trắng (Komi 7.5)"}
+                </strong>
+              </span>
+            </div>
+
+            <div className="play-tab__ongoing-row">
+              <span className="play-tab__ongoing-label">Lượt đi:</span>
+              <span
+                className="play-tab__ongoing-value"
+                style={{
+                  color: matchState?.isMyTurn ? "var(--color-accent-jade)" : "var(--color-text-secondary)",
+                  fontWeight: 600,
+                }}
+              >
+                {matchState?.isMyTurn ? "Tới lượt bạn" : "Đối thủ đang suy nghĩ..."}
+              </span>
+            </div>
+
+            <div className="play-tab__ongoing-row">
+              <span className="play-tab__ongoing-label">Số nước đã đi:</span>
+              <span className="play-tab__ongoing-value">
+                {matchState?.moveHistory?.length || 0} nước
+              </span>
+            </div>
+          </div>
+
+          <div className="play-tab__ongoing-notice">
+            Bạn đang trong một ván cờ trực tiếp. Chức năng ghép trận ngẫu nhiên được tạm khóa để bảo đảm
+            tính công bằng cho ván đấu.
+          </div>
+
+          <div className="play-tab__ongoing-actions">
+            {onSwitchToAnalysis && (
+              <button
+                type="button"
+                className="play-tab__ongoing-btn play-tab__ongoing-btn--view"
+                onClick={onSwitchToAnalysis}
+              >
+                Xem biên bản nước đi
+              </button>
+            )}
+
+            <button
+              type="button"
+              className={`play-tab__ongoing-btn play-tab__ongoing-btn--resign ${
+                confirmingResign ? "play-tab__ongoing-btn--confirming" : ""
+              }`}
+              onClick={handleResignClick}
+            >
+              {confirmingResign ? "Bấm lần nữa để xác nhận Xin thua" : "Xin thua (Đầu hàng)"}
+            </button>
+          </div>
         </div>
       ) : (
-        <button className="play-tab__primary-btn" onClick={handleQuickMatch} disabled={busy}>
-          Ghép trận ngẫu nhiên
-        </button>
-      )}
-
-      {/* Thách bạn bè */}
-      <button className="play-tab__secondary-btn" onClick={handleToggleFriendPicker} disabled={busy}>
-        Thách đấu bạn bè
-      </button>
-
-      {showFriendPicker && (
-        <div className="play-tab__friend-picker">
-          {friends.length === 0 ? (
-            <p className="play-tab__empty">Chưa có bạn bè — thêm ở tab "Bạn bè" trước.</p>
-          ) : (
-            friends.map((f) => (
-              <button key={f.uid} className="play-tab__friend-picker-row" onClick={() => handleInviteFriend(f.uid)}>
-                <span className="play-tab__friend-avatar">{f.username[0]}</span>
-                {f.username}
+        /* Giao diện sảnh chờ khi chưa vào trận */
+        <>
+          {/* Bộ chọn kích thước bàn */}
+          <div className="play-tab__section-label">Kích thước bàn</div>
+          <div className="play-tab__size-row">
+            {BOARD_SIZES.map((sz) => (
+              <button
+                key={sz}
+                type="button"
+                className={`play-tab__size-btn ${selectedSize === sz ? "play-tab__size-btn--active" : ""}`}
+                onClick={() => setSelectedSize(sz)}
+              >
+                {sz}×{sz}
               </button>
-            ))
-          )}
-        </div>
-      )}
+            ))}
+          </div>
 
-      {/* Lời mời đến */}
-      {incomingInvites.length > 0 && (
-        <div className="play-tab__section">
-          <div className="play-tab__section-title">Lời mời thách đấu ({incomingInvites.length})</div>
-          {incomingInvites.map((inv) => (
-            <div key={inv.id} className="play-tab__invite-row">
-              <span>{inv.fromUsername}</span>
-              <div style={{ display: "flex", gap: 6 }}>
-                <button className="play-tab__invite-accept" onClick={() => handleAcceptInvite(inv)}>
-                  Nhận
-                </button>
-                <button className="play-tab__invite-decline" onClick={() => declineMatchInvite(inv.id)}>
-                  Từ chối
-                </button>
+          {/* Bộ chọn thời gian — Byoyomi */}
+          <div className="play-tab__section-label">
+            Thời gian
+            <span className="play-tab__byoyomi-tip"> · Byoyomi (秒読み)</span>
+          </div>
+          <div className="play-tab__time-grid">
+            {TIME_CONTROLS.map((tc) => (
+              <button
+                key={tc.id}
+                type="button"
+                className={`play-tab__time-card ${selectedTime === tc.id ? "play-tab__time-card--active" : ""}`}
+                onClick={() => setSelectedTime(tc.id)}
+              >
+                {tc.badge && <span className="play-tab__time-badge">{tc.badge}</span>}
+                <span className="play-tab__time-card-label">{tc.label}</span>
+                <span className="play-tab__time-card-sub">{tc.byoyomi[selectedSize]}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Dòng tóm tắt thời gian đã chọn */}
+          <div className="play-tab__time-summary">
+            <span>
+              {selectedSize}×{selectedSize} · {byoyomiLabel}/nước đọc
+            </span>
+          </div>
+
+          {/* Ghép trận */}
+          {waitingRoomId ? (
+            <div className="play-tab__waiting-wrapper">
+              <div className="play-tab__waiting">
+                <span className="play-tab__waiting-spinner" />
+                Đang tìm đối thủ...
               </div>
+              <button className="play-tab__cancel-btn" onClick={handleCancelSearch} disabled={busy}>
+                Hủy
+              </button>
             </div>
-          ))}
-        </div>
+          ) : (
+            <button className="play-tab__primary-btn" onClick={handleQuickMatch} disabled={busy}>
+              Ghép trận ngẫu nhiên
+            </button>
+          )}
+
+          {/* Thách bạn bè */}
+          <button className="play-tab__secondary-btn" onClick={handleToggleFriendPicker} disabled={busy}>
+            Thách đấu bạn bè
+          </button>
+
+          {showFriendPicker && (
+            <div className="play-tab__friend-picker">
+              {friends.length === 0 ? (
+                <p className="play-tab__empty">Chưa có bạn bè — thêm ở tab "Bạn bè" trước.</p>
+              ) : (
+                friends.map((f) => (
+                  <button
+                    key={f.uid}
+                    className="play-tab__friend-picker-row"
+                    onClick={() => handleInviteFriend(f.uid)}
+                  >
+                    <span className="play-tab__friend-avatar">{f.username[0]}</span>
+                    {f.username}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* Lời mời đến */}
+          {incomingInvites.length > 0 && (
+            <div className="play-tab__section">
+              <div className="play-tab__section-title">
+                Lời mời thách đấu ({incomingInvites.length})
+              </div>
+              {incomingInvites.map((inv) => (
+                <div key={inv.id} className="play-tab__invite-row">
+                  <span>{inv.fromUsername}</span>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button
+                      className="play-tab__invite-accept"
+                      onClick={() => handleAcceptInvite(inv)}
+                    >
+                      Nhận
+                    </button>
+                    <button
+                      className="play-tab__invite-decline"
+                      onClick={() => declineMatchInvite(inv.id)}
+                    >
+                      Từ chối
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

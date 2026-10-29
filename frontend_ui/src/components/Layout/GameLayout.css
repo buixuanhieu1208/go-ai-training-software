@@ -88,6 +88,8 @@
   align-items: center;
   gap: var(--space-md);
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .game-layout__right {
@@ -112,5 +114,20 @@
 
   .game-layout__center {
     order: -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .game-layout__header {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .game-layout__body {
+    padding: var(--space-sm);
+    gap: var(--space-md);
+  }
+
+  .game-layout__board-row {
+    gap: 0;
   }
 }

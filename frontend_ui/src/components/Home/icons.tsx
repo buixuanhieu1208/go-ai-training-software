@@ -164,3 +164,16 @@ export function IconLanguage() {
     </svg>
   );
 }
+
+export function IconTrophy() {
+  return (
+    <svg viewBox="0 0 32 32" width="22" height="22" fill="none">
+      <path d="M9 7 H23 V14 C23 18 19.8 21 16 21 C12.2 21 9 18 9 14 Z" className="mode-icon__stroke" />
+      <path d="M9 9 H5 C4 9 3 10 3 11 C3 14 5 16 9 16" className="mode-icon__stroke" />
+      <path d="M23 9 H27 C28 9 29 10 29 11 C29 14 27 16 23 16" className="mode-icon__stroke" />
+      <path d="M16 21 V26" className="mode-icon__stroke" />
+      <path d="M10 26 H22" className="mode-icon__stroke" />
+    </svg>
+  );
+}
+

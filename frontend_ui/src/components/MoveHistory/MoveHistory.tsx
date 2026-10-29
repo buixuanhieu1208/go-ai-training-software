@@ -64,7 +64,7 @@ export function MoveHistory({
             onClick={onExportSgf}
             title="Tải file kỳ phổ .SGF"
           >
-            📥 Xuất SGF
+            Xuất SGF
           </button>
         )}
       </div>

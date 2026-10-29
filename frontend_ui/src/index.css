@@ -11,6 +11,9 @@ html {
 }
 
 body {
+  background-color: var(--color-bg, #14140f);
+  color: var(--color-text-primary, #ede7d9);
+  transition: background-color 0.2s ease, color 0.2s ease;
   /* Font mặc định cho phần thân trang — các khối dùng var(--font-display)/
      var(--font-mono) (tiêu đề, dữ liệu) tự ghi đè font riêng của chúng, xem
      bên dưới: KHÔNG ép font-family bằng "*" + !important như code cũ, vì
@@ -36,4 +39,16 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #666;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: #ede8dc;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #bbb4a4;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: #999180;
 }

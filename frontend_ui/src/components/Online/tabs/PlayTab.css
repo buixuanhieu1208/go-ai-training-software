@@ -63,15 +63,11 @@
   font-family: var(--font-mono);
 }
 
-.play-tab__time-summary-icon { font-size: 12px; }
-
-
-
 /* Time control grid */
 .play-tab__time-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 8px;
 }
 
 .play-tab__time-card {
@@ -79,8 +75,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 10px 6px;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 8px;
   background: var(--color-panel-raised);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -97,15 +94,16 @@
   background: rgba(62, 207, 142, 0.1);
 }
 
-.play-tab__time-card-icon { font-size: 18px; }
 .play-tab__time-card-label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--color-text-primary);
+  letter-spacing: -0.01em;
 }
 .play-tab__time-card-sub {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--color-text-muted);
+  font-family: var(--font-mono);
 }
 
 /* Board size row */
@@ -326,4 +324,127 @@
   background: none;
   border: 1px solid var(--color-border);
   color: var(--color-text-muted);
+}
+
+/* Ongoing Match Panel (khi đang trong trận đấu) */
+.play-tab__ongoing-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  background: var(--color-panel-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.play-tab__ongoing-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.play-tab__ongoing-pulse {
+  color: var(--color-accent-jade);
+  font-size: 14px;
+  animation: live-pulse 1.4s ease-in-out infinite;
+}
+
+.play-tab__ongoing-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.play-tab__ongoing-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.play-tab__ongoing-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+}
+
+.play-tab__ongoing-label {
+  color: var(--color-text-muted);
+}
+
+.play-tab__ongoing-value {
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+}
+
+.play-tab__ongoing-elo {
+  color: var(--color-accent-amber);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  margin-left: 5px;
+}
+
+.play-tab__ongoing-notice {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--color-accent-amber);
+  background: rgba(224, 165, 55, 0.1);
+  border: 1px solid rgba(224, 165, 55, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+.play-tab__ongoing-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.play-tab__ongoing-btn {
+  width: 100%;
+  padding: 10px var(--space-sm);
+  border-radius: var(--radius-md);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.play-tab__ongoing-btn--view {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.play-tab__ongoing-btn--view:hover {
+  border-color: var(--color-accent-jade);
+  color: var(--color-accent-jade);
+}
+
+.play-tab__ongoing-btn--resign {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.play-tab__ongoing-btn--resign:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+}
+
+.play-tab__ongoing-btn--confirming {
+  background: #dc2626 !important;
+  color: #fff !important;
+  border-color: #ef4444 !important;
+  font-weight: 700;
 }

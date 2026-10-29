@@ -13,6 +13,10 @@ export interface PolicyHint {
   position: Position;
   confidence: number; // 0..1, xác suất Policy Network gán cho nước đi này
   rank?: number; // thứ hạng gợi ý (1 = tốt nhất), optional, phục vụ hiển thị số thứ tự
+  winrate?: number; // Tỷ lệ thắng nếu đi nước này (0..1)
+  scoreLead?: number; // Lợi thế mục (điểm) nếu đi nước này
+  visits?: number; // Số lượt mô phỏng cây MCTS
+  pv?: string[]; // Chuỗi biến thế nước đi tiếp theo (Principal Variation)
 }
 
 /** Kết quả suy luận từ Value Network tại 1 thời điểm của ván đấu */

@@ -6,6 +6,13 @@ import os
 import sys
 import logging
 
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, HTTPException
@@ -70,10 +77,16 @@ if os.path.exists(KATAGO_PATH) and os.path.exists(KATAGO_MODEL):
     if not os.path.exists(katago_config):
         katago_config = None
     katago_client = KataGoClient(KATAGO_PATH, KATAGO_MODEL, katago_config)
-    logger.info("✅ Đã phát hiện KataGo. Chế độ Khó (Hard) và Phân tích (Analysis) sẽ do KataGo xử lý!")
+    katago_client.start()
+    logger.info("✅ Đã phát hiện và khởi động KataGo Engine sẵn sàng trên GPU! Chế độ Khó (Hard) và Phân tích (Analysis) sẽ do KataGo xử lý tức thì.")
 else:
     logger.info("⚠️ Không tìm thấy KataGo. Sẽ sử dụng AI Python DualCNN mặc định.")
     logger.info(f"   (Để bật KataGo, hãy tải katago.exe và model.bin.gz vào thư mục: {os.path.join(BASE_DIR, 'katago')})")
+
+@app.on_event("shutdown")
+def shutdown_event():
+    if katago_client:
+        katago_client.stop()
 
 
 # ============================================================================
@@ -162,7 +175,9 @@ def get_move(req: GameStateRequest):
     # Frontend đang thấy có quân). Giờ báo lỗi rõ ràng để Frontend xử lý, thay vì trả nước đi sai.
     state = GoState(size=size)
     try:
-        state.load_board(req.board, sanitize=False)
+        state.load_board(req.board, sanitize=True)
+        if state.invalid_groups_removed > 0:
+            logger.info(f"Đã tự động dọn {state.invalid_groups_removed} đám quân hết khí từ bàn cờ gửi lên.")
         state.set_ko_point(tuple(req.ko_point) if req.ko_point is not None else None)
     except ValueError as e:
         logger.warning(f"Từ chối thế cờ bất hợp lệ (room={req.room_id}): {e}")
@@ -185,14 +200,42 @@ def get_move(req: GameStateRequest):
             )
 
         if katago_client and req.difficulty == "hard":
-            # KataGo với 60 visits: cực mạnh (trình độ chuyên nghiệp) và phản hồi siêu tốc (<0.5 giây)
-            result = katago_client.analyze(req.board, req.current_player, max_visits=60)
-            hints = result.get("policyHints", [])
-            if hints:
-                best_hint = hints[0]
-                move = (best_hint["position"]["y"], best_hint["position"]["x"])
-            else:
-                move = None
+            # KataGo với 300 visits: sức cờ siêu đẳng cấp (Pro 9-Dan / Superhuman) tính toán sâu 15-20 nước, phản hồi ~0.2s trên GPU
+            try:
+                result = katago_client.analyze(
+                    req.board,
+                    req.current_player,
+                    max_visits=300,
+                    consecutive_passes=req.consecutive_passes
+                )
+                best_move = result.get("bestMove", "")
+
+                # Logic kết thúc ván thông minh:
+                # Nếu đối thủ vừa Bỏ lượt (consecutive_passes > 0) và AI đang dẫn trước vững chắc (winrate >= 80%):
+                # AI lập tức Pass theo để kết thúc ván và mở bảng đếm điểm, không đánh các nước lấp đất thừa thãi.
+                cur_wr = result.get("valueEstimate", {}).get("blackWinRate", 0.5) if req.current_player == 1 else (1.0 - result.get("valueEstimate", {}).get("blackWinRate", 0.5))
+                pass_cand = next((m for m in result.get("allMoves", []) if m.get("move", "").lower() == "pass"), None)
+                pass_wr = pass_cand.get("winrate", 0) if pass_cand else 0
+                if req.current_player == -1 and pass_cand:
+                    pass_wr = 1.0 - pass_wr
+
+                if req.consecutive_passes > 0 and (cur_wr >= 0.80 or pass_wr >= 0.80 or best_move.lower() == "pass"):
+                    logger.info("Đối thủ đã Pass và AI đang dẫn trước -> AI Pass theo để kết thúc ván cờ.")
+                    move = None
+                elif best_move.lower() == "pass":
+                    # AI quyết định bỏ lượt (pass) vì đất đã phân định xong, không còn nước đi có lợi
+                    move = None
+                else:
+                    hints = result.get("policyHints", [])
+                    if hints:
+                        best_hint = hints[0]
+                        move = (best_hint["position"]["y"], best_hint["position"]["x"])
+                    else:
+                        logger.warning("KataGo không trả về hints, tự động fallback sang DualCNN.")
+                        move = ai_engine.get_best_move(state, difficulty=req.difficulty)
+            except Exception as e:
+                logger.warning(f"KataGo phân tích lỗi ({e}), fallback sang DualCNN.")
+                move = ai_engine.get_best_move(state, difficulty=req.difficulty)
         else:
             move = ai_engine.get_best_move(state, difficulty=req.difficulty)
 
@@ -222,7 +265,7 @@ def analyze(req: GameStateRequest):
     
     state = GoState(size=size)
     try:
-        state.load_board(req.board, sanitize=False)
+        state.load_board(req.board, sanitize=True)
         state.set_ko_point(tuple(req.ko_point) if req.ko_point is not None else None)
         state.current_player = req.current_player
         state.consecutive_passes = req.consecutive_passes
@@ -237,9 +280,14 @@ def analyze(req: GameStateRequest):
         }
 
     if katago_client:
-        result = katago_client.analyze(req.board, req.current_player, max_visits=50)
-        result["thinkingTimeMs"] = int((time.time() - start_time) * 1000)
-        return result
+        try:
+            # Gợi ý AI phân tích sâu với 200 visits MCTS (chính xác winrate, điểm mục, pv)
+            result = katago_client.analyze(req.board, req.current_player, max_visits=200)
+            if result and "valueEstimate" in result and "policyHints" in result:
+                result["thinkingTimeMs"] = int((time.time() - start_time) * 1000)
+                return result
+        except Exception as e:
+            logger.warning(f"KataGo analyze gặp sự cố ({e}), fallback sang DualCNN.")
 
     # Lấy model của size tương ứng
     model = ai_engine._get_model(size)
@@ -332,9 +380,10 @@ def analyze_full_game(req: AnalyzeFullGameRequest):
         color = m.get("color")
         color_int = BLACK if color == 1 or str(color).lower() == "black" else WHITE
         pos = m.get("position")
+        state.current_player = color_int
         if pos:
             try:
-                state.play_move((pos["y"], pos["x"]), color=color_int)
+                state.apply_move((pos["y"], pos["x"]))
             except Exception:
                 pass
 

@@ -278,22 +278,36 @@ export async function generateGameReviewReport(
           for (const pvStr of h.pv.slice(0, 5)) {
             const parsed = parseGoCoord(pvStr, boardSize);
             if (parsed) {
+              // Tránh lặp lại nước đầu nếu pv đã chứa h.position
+              if (moveTexts.length === 1 && moveTexts[0] === pvStr) {
+                continue;
+              }
               moves.push(parsed);
               moveTexts.push(pvStr);
             }
           }
         }
+
+        // h.winrate và h.scoreLead được chuẩn hóa theo góc nhìn của Đen.
+        // Quy đổi theo góc nhìn của bên đang đi (isBlackMove):
+        const varWinrate = isBlackMove
+          ? (h.winrate ?? currentBlackWinRate)
+          : 1.0 - (h.winrate ?? currentBlackWinRate);
+        const varScoreLead = isBlackMove
+          ? (h.scoreLead ?? currentScoreLead)
+          : -(h.scoreLead ?? currentScoreLead);
+
         return {
           rank: h.rank ?? hIdx + 1,
           label: hIdx === 0 ? "Gợi ý tối ưu của AI" : `Biến thể thay thế #${hIdx + 1}`,
           moves,
           moveTexts,
-          winrate: h.winrate ?? (isBlackMove ? currentBlackWinRate : 1 - currentBlackWinRate),
-          scoreLead: h.scoreLead ?? (isBlackMove ? currentScoreLead : -currentScoreLead),
+          winrate: varWinrate,
+          scoreLead: varScoreLead,
           confidence: h.confidence,
           comment:
             hIdx === 0
-              ? `Nước đi được AI đánh giá cao nhất, chênh lệch: ${h.scoreLead ? (h.scoreLead >= 0 ? `+${h.scoreLead.toFixed(1)}` : h.scoreLead.toFixed(1)) : "+0"} mục.`
+              ? `Nước đi được AI đánh giá cao nhất, chênh lệch: ${varScoreLead >= 0 ? `+${varScoreLead.toFixed(1)}` : varScoreLead.toFixed(1)} mục.`
               : "Lựa chọn chiến thuật khả thi khác.",
         };
       });

@@ -22,9 +22,9 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-panel);
   padding: var(--space-xl) var(--space-lg);
-  min-width: 360px;
+  width: min(460px, calc(100vw - 28px));
   max-width: 460px;
-  width: 90vw;
+  box-sizing: border-box;
   text-align: center;
   animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -301,5 +301,14 @@
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@media (max-width: 480px) {
+  .game-result-modal {
+    padding: var(--space-lg) var(--space-md);
+  }
+  .game-result-actions {
+    flex-direction: column;
   }
 }

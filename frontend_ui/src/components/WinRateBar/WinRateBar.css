@@ -99,3 +99,12 @@
 .dot--white {
   background: var(--color-winrate-white);
 }
+
+@media (max-width: 600px) {
+  .winrate {
+    padding: var(--space-sm);
+  }
+  .winrate__track {
+    height: 120px;
+  }
+}

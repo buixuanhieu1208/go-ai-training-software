@@ -12,10 +12,13 @@ export interface ControlPanelProps {
   onToggleHints: (enabled: boolean) => void;
   soundEnabled: boolean;
   onToggleSound: (enabled: boolean) => void;
-  /** Chỉ dùng ở chế độ EvE — cho phép tạm dừng/tiếp tục 2 AI tự đấu */
+  /** Chỉ dùng ở chế độ EvE — cho phép tạm dừng/tiếp tục 2 AI tự đấu & tự bắt đầu lại sau 3s */
   autoplayControls?: {
     isPaused: boolean;
     onToggle: () => void;
+    autoRestart?: boolean;
+    onToggleAutoRestart?: () => void;
+    countdown?: number | null;
   };
 }
 
@@ -43,13 +46,32 @@ export function ControlPanel({
       </div>
 
       {autoplayControls && (
-        <button
-          className="btn btn--secondary control-panel__autoplay-btn"
-          onClick={autoplayControls.onToggle}
-          disabled={isFinished}
-        >
-          {autoplayControls.isPaused ? "▶ Tiếp tục AI vs AI" : "⏸ Tạm dừng AI vs AI"}
-        </button>
+        <div className="control-panel__eve-box">
+          <button
+            className="btn btn--secondary control-panel__autoplay-btn"
+            onClick={autoplayControls.onToggle}
+            disabled={isFinished}
+          >
+            {autoplayControls.isPaused ? "▶ Tiếp tục AI vs AI" : "⏸ Tạm dừng AI vs AI"}
+          </button>
+
+          {autoplayControls.onToggleAutoRestart && (
+            <label className="control-panel__auto-restart-label">
+              <input
+                type="checkbox"
+                checked={autoplayControls.autoRestart ?? true}
+                onChange={autoplayControls.onToggleAutoRestart}
+              />
+              <span>Tự động bắt đầu lại sau 3s</span>
+            </label>
+          )}
+
+          {isFinished && autoplayControls.countdown !== null && autoplayControls.countdown !== undefined && (
+            <div className="control-panel__countdown-badge">
+              ⏱ Bắt đầu ván mới sau <strong>{autoplayControls.countdown}s</strong>
+            </div>
+          )}
+        </div>
       )}
 
       <div className="control-panel__actions">

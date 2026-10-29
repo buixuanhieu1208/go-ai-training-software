@@ -137,3 +137,48 @@
 .control-panel__autoplay-btn {
   width: 100%;
 }
+
+@media (max-width: 480px) {
+  .control-panel__actions {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.control-panel__eve-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-panel__auto-restart-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.control-panel__auto-restart-label input[type="checkbox"] {
+  accent-color: var(--color-accent-jade);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.control-panel__countdown-badge {
+  background: rgba(224, 165, 55, 0.15);
+  border: 1px solid var(--color-accent-amber);
+  color: var(--color-accent-amber);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  text-align: center;
+  animation: pulseCountdown 1s infinite alternate;
+}
+
+@keyframes pulseCountdown {
+  from { opacity: 0.8; }
+  to { opacity: 1; }
+}

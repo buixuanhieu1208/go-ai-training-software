@@ -5,10 +5,11 @@
 // còn tự chọn chế độ chơi ở đây nữa, việc đó đã chuyển hết vào Sidebar.
 
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Board } from "../Board/Board";
 import { HeroBoardDemo } from "./HeroBoardDemo";
 import { Sidebar } from "./Sidebar";
-import { MOCK_TSUMEGO_PUZZLES } from "../Tsumego/mockTsumegoData";
+import { ALL_PUZZLES } from "../../data/puzzles/allPuzzles";
 import { parseSgf, buildBoardAtMove } from "../../utils/sgfParser";
 import { IconGrid, IconScale, IconSpark, IconStar } from "./icons";
 import type { GameMode } from "../../types/mode";
@@ -53,7 +54,8 @@ import { useAuth } from "../../contexts/AuthContext";
 
 export function Home({ onSelectMode, onGoOnline, onOpenRules, onOpenLogin, onOpenRegister }: HomeProps) {
   const { user } = useAuth();
-  const teaserPuzzle = MOCK_TSUMEGO_PUZZLES[0];
+  const navigate = useNavigate();
+  const teaserPuzzle = ALL_PUZZLES[0];
   const teaserBoard = useMemo(() => {
     const parsed = parseSgf(teaserPuzzle.sgf);
     return { board: buildBoardAtMove(parsed, 0), size: parsed.metadata.boardSize };
@@ -92,6 +94,14 @@ export function Home({ onSelectMode, onGoOnline, onOpenRules, onOpenLogin, onOpe
               )}
               <button className="home-btn home-btn--ghost home-btn--lg" onClick={onOpenRules} type="button">
                 Xem luật chơi
+              </button>
+              <button
+                className="home-btn home-btn--ghost home-btn--lg"
+                onClick={() => navigate("/leaderboard")}
+                type="button"
+                style={{ borderColor: "rgba(234, 179, 8, 0.4)", color: "#facc15" }}
+              >
+                Bảng xếp hạng
               </button>
             </div>
           </div>
@@ -164,9 +174,14 @@ export function Home({ onSelectMode, onGoOnline, onOpenRules, onOpenLogin, onOpe
               <button onClick={() => onSelectMode("eve")} type="button">EvE — AI vs AI</button>
             </div>
             <div>
-              <h4>Học</h4>
+              <h4>Học &amp; Rèn luyện</h4>
               <button onClick={onOpenRules} type="button">Luật chơi (Luật Trung Quốc)</button>
               <button onClick={() => onSelectMode("tsumego")} type="button">Luyện Tsumego</button>
+              <button onClick={() => onSelectMode("legendary")} type="button">Đấu trường huyền thoại</button>
+            </div>
+            <div>
+              <h4>Cộng đồng</h4>
+              <button onClick={() => navigate("/leaderboard")} type="button">Bảng xếp hạng</button>
             </div>
           </div>
           <div className="home-footer__bottom">© {new Date().getFullYear()} Cờ Vây AI — Dự án demo, phi thương mại.</div>

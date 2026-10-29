@@ -230,6 +230,85 @@
   cursor: default;
 }
 
+.chatbox__header-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.chatbox__status-online {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-accent-jade);
+  background: rgba(62, 207, 142, 0.12);
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(62, 207, 142, 0.3);
+  white-space: nowrap;
+}
+
+.chatbox__quick-chips {
+  display: flex;
+  gap: 6px;
+  padding: 6px var(--space-sm);
+  background: var(--color-panel);
+  border-top: 1px solid var(--color-border-subtle);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chatbox__quick-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chatbox__chip {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-panel-raised);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.chatbox__chip:hover:not(:disabled) {
+  background: var(--color-accent-jade-dim);
+  border-color: var(--color-accent-jade);
+  color: var(--color-text-primary);
+  transform: translateY(-1px);
+}
+
+.chatbox__chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.chatbox__badge-stone {
+  display: inline-block;
+  font-size: 9.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 6px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.chatbox__badge-stone--black {
+  background: #111;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.chatbox__badge-stone--white {
+  background: #eee;
+  color: #111;
+  border: 1px solid #ccc;
+}
+
 @media (max-width: 480px) {
   .chatbox {
     right: var(--space-md);

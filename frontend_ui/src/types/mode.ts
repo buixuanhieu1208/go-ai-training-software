@@ -9,8 +9,9 @@
  * pve        — Người (Đen) đấu với AI Engine (Trắng).
  * eve        — AI đấu với AI, dùng để quan sát/kiểm thử engine.
  * tsumego    — Luyện tập giải thế cờ (Tử hoạt) từ file SGF.
+ * legendary  — Đấu trường huyền thoại: nhập vai tuyển thủ tại các thời khắc lịch sử.
  */
-export type GameMode = "pvp-local" | "pvp-online" | "pve" | "eve" | "tsumego";
+export type GameMode = "pvp-local" | "pvp-online" | "pve" | "eve" | "tsumego" | "legendary";
 
 export interface GameModeOption {
   id: GameMode;

@@ -26,6 +26,10 @@ export interface BoardProps {
   hotspotArea?: HotspotArea | null;
   /** Chuỗi nước đi biến thể do AI đề xuất cần hiển thị xem trước */
   variationSteps?: { position: Position; stepNumber: number; color: "black" | "white" }[];
+  /** Tọa độ các quân cờ trọng tâm (cần giải cứu hoặc tiêu diệt) */
+  targetStones?: Position[];
+  /** Loại hiệu ứng cho quân trọng tâm */
+  targetStonesType?: 'rescue' | 'capture' | 'breakthrough' | 'endgame';
 }
 
 const CELL = 32; // px, khoảng cách giữa 2 giao điểm
@@ -42,9 +46,17 @@ export function Board({
   floatingScores = [],
   hotspotArea = null,
   variationSteps = [],
+  targetStones = [],
+  targetStonesType = 'rescue',
 }: BoardProps) {
   const size = PADDING * 2 + CELL * (boardSize - 1);
   const starPoints = STAR_POINTS[boardSize] ?? [];
+
+  const targetSet = useMemo(() => {
+    const s = new Set<string>();
+    targetStones.forEach((p) => s.add(`${p.x},${p.y}`));
+    return s;
+  }, [targetStones]);
 
   const hintMap = useMemo(() => {
     const map = new Map<string, PolicyHint>();
@@ -163,13 +175,31 @@ export function Board({
           row.map((stone, x) => {
             if (stone === "empty") return null;
             const isLast = lastMove?.x === x && lastMove?.y === y;
+            const isTarget = targetSet.has(`${x},${y}`);
             return (
               <g key={`stone-${x}-${y}`}>
+                {/* Hiệu ứng phát sáng hào quang cho quân trọng tâm / cần cứu */}
+                {isTarget && (
+                  <g className="board-target-glow-group">
+                    <circle
+                      cx={toCoord(x)}
+                      cy={toCoord(y)}
+                      r={CELL / 2 + 2}
+                      className={`board-target-ring board-target-ring--${targetStonesType}`}
+                    />
+                    <circle
+                      cx={toCoord(x)}
+                      cy={toCoord(y)}
+                      r={CELL / 2 + 6}
+                      className={`board-target-wave board-target-wave--${targetStonesType}`}
+                    />
+                  </g>
+                )}
                 <circle
                   cx={toCoord(x)}
                   cy={toCoord(y)}
                   r={CELL / 2 - 2}
-                  className={`board-stone board-stone--${stone}`}
+                  className={`board-stone board-stone--${stone} ${isTarget ? "board-stone--target" : ""}`}
                 />
                 {isLast && (
                   <circle
@@ -212,14 +242,23 @@ export function Board({
                     className={`board-hint ${isBest ? "board-hint--best" : ""}`}
                     style={{ opacity: 0.35 + hint.confidence * 0.5 }}
                   />
-                  {isBest && (
+                  {isBest ? (
                     <text x={toCoord(x)} y={toCoord(y) + 4} textAnchor="middle" className="board-hint__star">
                       ★
                     </text>
-                  )}
+                  ) : hint.rank ? (
+                    <text x={toCoord(x)} y={toCoord(y) + 3.5} textAnchor="middle" className="board-hint__rank-text">
+                      {hint.rank}
+                    </text>
+                  ) : null}
                   <title>
-                    {isBest ? "Nước đi tối ưu (AI đề xuất)" : `Gợi ý #${hint.rank ?? "?"}`} —{" "}
-                    {Math.round(hint.confidence * 100)}%
+                    {[
+                      isBest ? "★ NƯỚC ĐI TỐI ƯU (KataGo AI)" : `GỢI Ý #${hint.rank ?? "?"}`,
+                      hint.winrate !== undefined ? `• Tỷ lệ thắng: ${(hint.winrate * 100).toFixed(1)}%` : null,
+                      hint.scoreLead !== undefined ? `• Lợi thế mục: ${hint.scoreLead > 0 ? "+" : ""}${hint.scoreLead.toFixed(1)} mục` : null,
+                      `• Độ tin cậy: ${Math.round(hint.confidence * 100)}%${hint.visits ? ` (${hint.visits} lượt tính)` : ""}`,
+                      hint.pv && hint.pv.length > 0 ? `• Biến thế: ${hint.pv.slice(0, 5).join(" → ")}` : null,
+                    ].filter(Boolean).join("\n")}
                   </title>
                 </g>
               );

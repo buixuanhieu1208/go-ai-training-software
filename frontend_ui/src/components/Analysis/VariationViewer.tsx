@@ -49,10 +49,10 @@ export function VariationViewer({
             <span className={`dot dot--${move.color}`} />
             <strong>{actualCoord}</strong>
             <span className={`var-badge var-badge--${quality}`}>
-              {quality === "best" && "🟢 Tối ưu"}
-              {quality === "good" && "🟢 Tốt"}
-              {quality === "inaccuracy" && "🟡 Chưa chuẩn"}
-              {quality === "blunder" && "🔴 Sai lầm"}
+              {quality === "best" && "Tối ưu"}
+              {quality === "good" && "Tốt"}
+              {quality === "inaccuracy" && "Chưa chuẩn"}
+              {quality === "blunder" && "Sai lầm"}
             </span>
           </div>
           {deltaWinRate !== undefined && deltaWinRate < -0.02 && (
@@ -115,8 +115,8 @@ export function VariationViewer({
             }}
           >
             {previewingVariation?.rank === activeVar.rank
-              ? "✕ Đóng xem biến thể"
-              : "👁 Xem biến thể trên bàn cờ"}
+              ? "Đóng xem biến thể"
+              : "Xem biến thể trên bàn cờ"}
           </button>
         </div>
 
@@ -140,7 +140,7 @@ export function VariationViewer({
 
         {activeVar.comment && (
           <div className="var-seq-comment">
-            💡 {activeVar.comment}
+            {activeVar.comment}
           </div>
         )}
       </div>

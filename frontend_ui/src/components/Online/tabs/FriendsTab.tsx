@@ -74,7 +74,7 @@ export function FriendsTab() {
   return (
     <div className="friends-tab">
       <button className="friends-tab__invite-btn" onClick={handleCopyInviteLink} type="button">
-        🔗 {linkCopied ? "Đã copy link!" : "Sao chép link kết bạn"}
+        {linkCopied ? "Đã sao chép link!" : "Sao chép link kết bạn"}
       </button>
 
       <div className="friends-tab__search">

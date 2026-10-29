@@ -11,6 +11,8 @@ import { Register } from "../Auth/Register";
 import { resignMatch } from "../../services/firestoreService";
 import { calculateScore } from "../../utils/goRules";
 import { GameResultModal } from "../GameResult/GameResultModal";
+import { ChatBox } from "../ChatBox/ChatBox";
+import { ConfirmLeaveModal } from "../ConfirmLeaveModal/ConfirmLeaveModal";
 import "../GameResult/GameResultModal.css";
 import "./OnlineHub.css";
 
@@ -45,6 +47,13 @@ export default function OnlineHub() {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [matchState.match?.status]);
+
+  // Tự động chuyển sang tab "Nước đi" khi trận đấu bắt đầu để người chơi theo dõi ván cờ
+  useEffect(() => {
+    if (activeMatchId && matchState.match?.status === "ongoing") {
+      setActiveTab("analysis");
+    }
+  }, [activeMatchId, matchState.match?.status]);
 
   if (!user) {
     if (authScreen === "login") {
@@ -136,29 +145,40 @@ export default function OnlineHub() {
             onEnterMatch={setActiveMatchId}
             activeMoveHistory={activeMatchId ? matchState.moveHistory : []}
             boardSize={activeMatchId && matchState.match ? matchState.match.boardSize : 19}
+            activeMatchId={activeMatchId}
+            matchState={activeMatchId ? matchState : null}
+            onResign={matchState.resign}
           />
         </div>
       </div>
 
-      {pendingNavPath && (
-        <div className="game-result-overlay" style={{ zIndex: 9999 }}>
-          <div className="game-result-modal" style={{ maxWidth: 400 }}>
-            <h2 className="game-result-winner" style={{ color: "var(--color-accent-amber)", fontSize: 20 }}>⚠️ Cảnh báo thoát trận</h2>
-            <p style={{ color: "var(--color-text-secondary)", fontSize: 14, textAlign: "center", marginBottom: 24, lineHeight: 1.5 }}>
-              Bạn đang trong một ván đấu. Nếu bạn rời đi bây giờ, bạn sẽ bị <strong>XỬ THUA</strong> ngay lập tức.<br/><br/>
-              Bạn có chắc chắn muốn rời đi?
-            </p>
-            <div className="game-result-actions">
-              <button className="game-result-btn game-result-btn--secondary" onClick={() => setPendingNavPath(null)}>
-                Ở lại
-              </button>
-              <button className="game-result-btn game-result-btn--primary" onClick={confirmLeave} style={{ background: "var(--color-accent-red)", borderColor: "var(--color-accent-red)", color: "white" }}>
-                Rời đi và Chịu thua
-              </button>
-            </div>
-          </div>
-        </div>
+      {activeMatchId && (
+        <ChatBox
+          matchId={activeMatchId}
+          currentUser={user}
+          userColor={matchState.myColor}
+          opponentName={matchState.opponent?.displayName}
+          autoOpenOnStart={true}
+        />
       )}
+
+      <ConfirmLeaveModal
+        open={Boolean(pendingNavPath)}
+        title="Cảnh báo thoát trận đấu"
+        message={
+          <>
+            Bạn đang trong một ván đấu trực tuyến. Nếu rời đi bây giờ, bạn sẽ bị{" "}
+            <strong className="text-danger">ĐẦU HÀNG (XỬ THUA)</strong> ngay lập tức.
+            <br /><br />
+            Bạn có chắc chắn muốn rời đi không?
+          </>
+        }
+        confirmText="Rời đi và Chịu thua"
+        cancelText="Ở lại thi đấu"
+        isDanger={true}
+        onConfirm={confirmLeave}
+        onCancel={() => setPendingNavPath(null)}
+      />
 
       {showTimeoutModal && (
         <div className="game-result-overlay" style={{ zIndex: 9999 }}>

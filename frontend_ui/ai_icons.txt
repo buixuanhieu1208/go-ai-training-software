@@ -1,2 +1,0 @@
-src\components\GameRoom.tsx: 122: {opponent.uid === "AI_ENGINE" ? "🤖" : opponent.displayName[0]}
-src\components\Lobby.tsx: 162: <span className="lobby__action-icon">🤖</span>

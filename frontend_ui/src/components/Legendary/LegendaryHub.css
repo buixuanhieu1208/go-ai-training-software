@@ -1,0 +1,453 @@
+/* src/components/Legendary/LegendaryHub.css */
+
+.legendary-hub {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1350px;
+  margin: 0 auto;
+  padding: 20px 24px 60px;
+  box-sizing: border-box;
+  color: #e0e0e0;
+  gap: 24px;
+}
+
+/* Hero Section */
+.legendary-hero {
+  position: relative;
+  background: linear-gradient(135deg, rgba(30, 39, 46, 0.95) 0%, rgba(15, 20, 25, 0.98) 100%);
+  border-radius: 16px;
+  padding: 36px 40px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.legendary-hero::after {
+  content: "";
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(241, 196, 15, 0.15) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.legendary-hero__content {
+  position: relative;
+  z-index: 1;
+  max-width: 850px;
+}
+
+.legendary-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(241, 196, 15, 0.12);
+  color: #f1c40f;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  border: 1px solid rgba(241, 196, 15, 0.3);
+}
+
+.legendary-hero__title {
+  margin: 0 0 12px 0;
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 1px;
+  background: linear-gradient(90deg, #ffffff 0%, #f1c40f 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.legendary-hero__desc {
+  margin: 0 0 24px 0;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: #b2bec3;
+}
+
+.legendary-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  width: fit-content;
+}
+
+.legendary-stat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.legendary-stat-value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #f5f6fa;
+}
+
+.legendary-stat-value--solved {
+  color: #2ecc71;
+}
+
+.legendary-stat-label {
+  font-size: 0.78rem;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.legendary-stat-divider {
+  width: 1px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Tabs */
+.legendary-tabs {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.legendary-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 18px;
+  border-radius: 10px;
+  color: #b2bec3;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.legendary-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.legendary-tab-btn--active {
+  background: rgba(241, 196, 15, 0.12);
+  border-color: #f1c40f;
+  color: #f1c40f;
+  box-shadow: 0 4px 12px rgba(241, 196, 15, 0.15);
+}
+
+.legendary-tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Filter & Search Bar */
+.legendary-filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.legendary-search-box {
+  display: flex;
+  align-items: center;
+  background: rgba(25, 28, 36, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 8px 14px;
+  flex: 1;
+  min-width: 280px;
+  max-width: 500px;
+  gap: 8px;
+}
+
+.legendary-search-icon {
+  font-size: 0.95rem;
+  color: #7f8c8d;
+}
+
+.legendary-search-box input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 0.92rem;
+  width: 100%;
+}
+
+.legendary-clear-search {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.legendary-clear-search:hover {
+  color: #fff;
+}
+
+.legendary-selects {
+  display: flex;
+  gap: 12px;
+}
+
+.legendary-select {
+  background: rgba(25, 28, 36, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #d1d8e0;
+  padding: 9px 14px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.legendary-select option {
+  background: #1e272e;
+  color: #fff;
+}
+
+/* Grid of Cards */
+.legendary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.legendary-card-item {
+  background: rgba(25, 28, 36, 0.75);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.legendary-card-item:hover {
+  transform: translateY(-4px);
+  border-color: rgba(241, 196, 15, 0.4);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+
+.legendary-card-item--solved {
+  border-color: rgba(46, 204, 113, 0.3);
+}
+
+.legendary-card-item__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.legendary-card-item__badges {
+  display: flex;
+  gap: 6px;
+}
+
+.legendary-era-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.08);
+  color: #b2bec3;
+  padding: 2px 7px;
+  border-radius: 5px;
+  text-transform: uppercase;
+}
+
+.legendary-cat-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+
+.legendary-card-item__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legendary-stars {
+  color: #f1c40f;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+}
+
+.legendary-stars--dim {
+  color: rgba(255, 255, 255, 0.15);
+}
+
+.legendary-solved-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #2ecc71;
+  background: rgba(46, 204, 113, 0.15);
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid rgba(46, 204, 113, 0.25);
+}
+
+.legendary-earned-stars-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.15);
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.legendary-card-item__title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f5f6fa;
+  line-height: 1.4;
+}
+
+.legendary-card-item__subtitle {
+  margin: -6px 0 0 0;
+  font-size: 0.82rem;
+  color: #7f8c8d;
+  font-style: italic;
+}
+
+/* Players on card */
+.legendary-card-item__players {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.legendary-mini-player {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #dfe6e9;
+}
+
+.legendary-country-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #b2bec3;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  letter-spacing: 0.5px;
+  font-family: monospace;
+}
+
+.legendary-mini-vs {
+  font-size: 0.75rem;
+  color: #7f8c8d;
+  font-weight: 700;
+}
+
+.legendary-card-item__snippet {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #95a5a6;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.legendary-card-item__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  margin-top: auto;
+}
+
+.legendary-card-item__challenge-info {
+  display: flex;
+  gap: 6px;
+}
+
+.legendary-move-pill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(230, 126, 34, 0.15);
+  color: #e67e22;
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+
+.legendary-turn-pill {
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.06);
+  color: #bdc3c7;
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+
+.legendary-card-item__btn {
+  background: #f1c40f;
+  color: #111;
+  border: none;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.legendary-card-item:hover .legendary-card-item__btn {
+  background: #f39c12;
+  transform: scale(1.04);
+}
+
+/* Empty state */
+.legendary-empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: rgba(25, 28, 36, 0.5);
+  border-radius: 16px;
+}
+
+.legendary-empty-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 0 16px 0;
+}

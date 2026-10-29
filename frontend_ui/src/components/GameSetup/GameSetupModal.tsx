@@ -303,11 +303,11 @@ export const GameSetupModal: React.FC<GameSetupModalProps> = ({
               onClick={handleContinue}
               title="Quay lại bàn cờ tiếp tục ván đấu"
             >
-              ▶ Tiếp tục chơi
+              Tiếp tục chơi
             </button>
           )}
           <button type="button" className="game-setup__btn-start" onClick={handleStart}>
-            {isGameStarted ? "↻ Bắt đầu ván mới" : "Bắt đầu ván đấu"}
+            {isGameStarted ? "Bắt đầu ván mới" : "Bắt đầu ván đấu"}
           </button>
         </div>
       </div>

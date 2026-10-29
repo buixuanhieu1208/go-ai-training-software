@@ -397,3 +397,22 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 600px) {
+  .home-content {
+    margin-left: 56px;
+  }
+  .home-hero {
+    padding: 32px 16px;
+    gap: var(--space-lg);
+  }
+  .home-hero__cta {
+    flex-direction: column;
+  }
+  .home-btn--lg {
+    width: 100%;
+  }
+  .home-section {
+    padding: 36px 16px;
+  }
+}

@@ -10,12 +10,18 @@ backend_ai/data/
 *.sgf
 *.pt
 
+# Node & Build artifacts
+node_modules/
+dist/
+
 # IDE và OS files
 .vscode/
 .DS_Store
 Thumbs.db
 
-# Logs
+# Logs & Temporary
 backend_ai/analysis_logs/
+analysis_logs/
 gtp_logs/
 *.log
+scratch/

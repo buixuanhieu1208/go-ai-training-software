@@ -17,6 +17,8 @@ import {
   serverTimestamp,
   increment,
   onSnapshot,
+  orderBy,
+  arrayUnion,
 } from "firebase/firestore";
 
 const EMPTY_BOARD = (size) =>
@@ -511,3 +513,156 @@ export async function acceptMatchInvite(invite, acceptingUser) {
 export async function declineMatchInvite(inviteId) {
   await updateDoc(doc(db, "matchInvites", inviteId), { status: "declined" });
 }
+
+// ============================================================================
+// CHAT TRONG TRẬN ĐẤU (Realtime Match Chat)
+// ============================================================================
+export async function sendMatchMessage(matchId, messageData) {
+  if (!matchId || !messageData?.text?.trim()) return null;
+
+  const msgId =
+    messageData.id ||
+    `${messageData.senderUid || "user"}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+
+  const newMsg = {
+    id: msgId,
+    senderUid: messageData.senderUid || "anonymous",
+    senderName: messageData.senderName || "Người chơi",
+    senderColor: messageData.senderColor || "black",
+    text: messageData.text.trim(),
+    createdAt: Date.now(),
+  };
+
+  // 1. Kênh BroadcastChannel đồng bộ tức thì 0ms giữa 2 tab/cửa sổ cùng máy
+  try {
+    if (typeof BroadcastChannel !== "undefined") {
+      const bc = new BroadcastChannel(`go_match_chat_${matchId}`);
+      bc.postMessage(newMsg);
+      setTimeout(() => bc.close(), 200);
+    }
+  } catch (bcErr) {
+    // Bỏ qua nếu môi trường không hỗ trợ
+  }
+
+  const matchRef = doc(db, "matches", matchId);
+
+  // 2. Ghi trực tiếp vào trường chatMessages của document trận đấu matches/{matchId}
+  try {
+    await updateDoc(matchRef, {
+      chatMessages: arrayUnion(newMsg),
+    });
+  } catch (err) {
+    try {
+      await setDoc(
+        matchRef,
+        {
+          chatMessages: arrayUnion(newMsg),
+        },
+        { merge: true }
+      );
+    } catch (setErr) {
+      console.warn("Lỗi ghi chatMessages vào match doc:", setErr);
+    }
+  }
+
+  // 3. Ghi vào subcollection messages (dự phòng đa nền tảng)
+  try {
+    const messagesRef = collection(db, "matches", matchId, "messages");
+    await setDoc(doc(messagesRef, msgId), {
+      ...newMsg,
+    });
+  } catch (subErr) {
+    // Bỏ qua nếu subcollection chưa được cấu hình rules riêng
+  }
+
+  return newMsg;
+}
+
+export function listenMatchMessages(matchId, onChange) {
+  if (!matchId) return () => {};
+
+  const seenMap = new Map();
+
+  const emit = () => {
+    const sorted = Array.from(seenMap.values()).sort((a, b) => {
+      const ta = typeof a.createdAt === "number" ? a.createdAt : (a.createdAt?.toMillis?.() || 0);
+      const tb = typeof b.createdAt === "number" ? b.createdAt : (b.createdAt?.toMillis?.() || 0);
+      return ta - tb;
+    });
+    onChange(sorted);
+  };
+
+  // 1. Lắng nghe BroadcastChannel (cho test 2 tab trên cùng máy siêu tốc)
+  let bc = null;
+  try {
+    if (typeof BroadcastChannel !== "undefined") {
+      bc = new BroadcastChannel(`go_match_chat_${matchId}`);
+      bc.onmessage = (event) => {
+        if (event.data && event.data.id && !seenMap.has(event.data.id)) {
+          seenMap.set(event.data.id, event.data);
+          emit();
+        }
+      };
+    }
+  } catch (e) {}
+
+  // 2. Lắng nghe document trận đấu matches/{matchId} (mảng chatMessages)
+  const matchRef = doc(db, "matches", matchId);
+  const unsubMatch = onSnapshot(
+    matchRef,
+    (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (Array.isArray(data.chatMessages)) {
+          let hasNew = false;
+          for (const m of data.chatMessages) {
+            if (m && m.id && !seenMap.has(m.id)) {
+              seenMap.set(m.id, m);
+              hasNew = true;
+            }
+          }
+          if (hasNew) emit();
+        }
+      }
+    },
+    (err) => {
+      console.warn("Lỗi onSnapshot match doc cho chat:", err);
+    }
+  );
+
+  // 3. Lắng nghe subcollection matches/{matchId}/messages (dự phòng nếu Firestore lưu theo subcollection)
+  let unsubSub = () => {};
+  try {
+    const messagesRef = collection(db, "matches", matchId, "messages");
+    unsubSub = onSnapshot(
+      messagesRef,
+      (snap) => {
+        let hasNew = false;
+        snap.docChanges().forEach((change) => {
+          if (change.type === "added" || change.type === "modified") {
+            const data = change.doc.data();
+            const id = data.id || change.doc.id;
+            if (!seenMap.has(id)) {
+              seenMap.set(id, { ...data, id });
+              hasNew = true;
+            }
+          }
+        });
+        if (hasNew) emit();
+      },
+      (err) => {
+        // Bỏ qua nếu subcollection chưa mở rules
+      }
+    );
+  } catch (e) {}
+
+  return () => {
+    unsubMatch();
+    unsubSub();
+    if (bc) {
+      try {
+        bc.close();
+      } catch (e) {}
+    }
+  };
+}

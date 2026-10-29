@@ -2,11 +2,27 @@
 
 .board-wrapper {
   display: inline-block;
+  max-width: 100%;
+  box-sizing: border-box;
   border-radius: var(--radius-lg);
   padding: var(--space-md);
   background: var(--color-panel-raised);
   box-shadow: var(--shadow-panel);
   border: 1px solid var(--color-border);
+}
+
+.board-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+}
+
+@media (max-width: 600px) {
+  .board-wrapper {
+    padding: 6px;
+    border-radius: var(--radius-md);
+  }
 }
 
 .board-wrapper--disabled {
@@ -84,6 +100,15 @@
 .board-hint__star {
   fill: #14140f;
   font-size: 11px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.board-hint__rank-text {
+  fill: #0a1a12;
+  font-family: var(--font-display, sans-serif);
+  font-size: 9px;
+  font-weight: 800;
   pointer-events: none;
   user-select: none;
 }
@@ -212,4 +237,95 @@
 
 .board-stone-var-text--white {
   fill: #161514;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HIỆU ỨNG PHÁT SÁNG CHO QUÂN CỜ TRỌNG TÂM / CẦN CỨU (LEGENDARY MISSIONS)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.board-stone--target {
+  filter: drop-shadow(0 0 5px rgba(255, 180, 0, 0.75)) !important;
+}
+
+.board-target-ring {
+  fill: none;
+  stroke-width: 2.2;
+  pointer-events: none;
+  animation: board-target-ring-pulse 1.8s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.board-target-wave {
+  fill: none;
+  stroke-width: 1.5;
+  pointer-events: none;
+  animation: board-target-wave-expand 2.2s cubic-bezier(0.1, 0.7, 0.2, 1) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Loại 'rescue': Ánh sáng vàng hoàng kim ấm áp bảo hộ */
+.board-target-ring--rescue {
+  stroke: #ffb703;
+  filter: drop-shadow(0 0 6px rgba(255, 183, 3, 0.9));
+}
+.board-target-wave--rescue {
+  stroke: #fb8500;
+}
+
+/* Loại 'capture': Ánh sáng đỏ thẫm rực lửa đe dọa */
+.board-target-ring--capture {
+  stroke: #ff3838;
+  filter: drop-shadow(0 0 6px rgba(255, 56, 56, 0.9));
+}
+.board-target-wave--capture {
+  stroke: #ff6b6b;
+}
+
+/* Loại 'breakthrough': Ánh sáng cyan điện tử xuyên phá */
+.board-target-ring--breakthrough {
+  stroke: #00d2d3;
+  filter: drop-shadow(0 0 6px rgba(0, 210, 211, 0.9));
+}
+.board-target-wave--breakthrough {
+  stroke: #54a0ff;
+}
+
+/* Loại 'endgame': Ánh sáng ngọc lục bảo tinh tế */
+.board-target-ring--endgame {
+  stroke: #10ac84;
+  filter: drop-shadow(0 0 6px rgba(16, 172, 132, 0.9));
+}
+.board-target-wave--endgame {
+  stroke: #1dd1a1;
+}
+
+@keyframes board-target-ring-pulse {
+  0%, 100% {
+    stroke-opacity: 0.95;
+    stroke-width: 2.5px;
+    transform: scale(1);
+  }
+  50% {
+    stroke-opacity: 0.45;
+    stroke-width: 1.6px;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes board-target-wave-expand {
+  0% {
+    r: 16px;
+    opacity: 0.85;
+  }
+  75% {
+    r: 23px;
+    opacity: 0.2;
+  }
+  100% {
+    r: 26px;
+    opacity: 0;
+  }
 }

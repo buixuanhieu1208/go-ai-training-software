@@ -242,7 +242,16 @@ export default function ProfilePage() {
             <h2 className="profile-section-title">Tổng quan thành tích & Đẳng cấp</h2>
             <div className="profile-overview-grid">
               <div className="profile-overview-card">
-                <div className="profile-overview-icon">🏆</div>
+                <div className="profile-overview-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-amber)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                    <path d="M4 22h16" />
+                    <path d="M10 14.66V17c0 .55-.45 1-1 1H7" />
+                    <path d="M14 14.66V17c0 .55.45 1 1 1h2" />
+                    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+                  </svg>
+                </div>
                 <div className="profile-overview-data">
                   <h3>Xếp hạng cờ vây</h3>
                   <p>
@@ -252,7 +261,18 @@ export default function ProfilePage() {
               </div>
 
               <div className="profile-overview-card">
-                <div className="profile-overview-icon">⚔️</div>
+                <div className="profile-overview-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-red)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5" />
+                    <line x1="13" y1="19" x2="19" y2="13" />
+                    <line x1="16" y1="16" x2="20" y2="20" />
+                    <line x1="19" y1="21" x2="21" y2="19" />
+                    <polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5" />
+                    <line x1="5" y1="14" x2="9" y2="18" />
+                    <line x1="7" y1="17" x2="4" y2="20" />
+                    <line x1="3" y1="19" x2="5" y2="21" />
+                  </svg>
+                </div>
                 <div className="profile-overview-data">
                   <h3>Thành tích thi đấu</h3>
                   <p>
@@ -262,7 +282,15 @@ export default function ProfilePage() {
               </div>
 
               <div className="profile-overview-card">
-                <div className="profile-overview-icon">🧩</div>
+                <div className="profile-overview-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-jade)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <line x1="3" y1="9" x2="21" y2="9" />
+                    <line x1="3" y1="15" x2="21" y2="15" />
+                    <line x1="9" y1="3" x2="9" y2="21" />
+                    <line x1="15" y1="3" x2="15" y2="21" />
+                  </svg>
+                </div>
                 <div className="profile-overview-data">
                   <h3>Tsumego đã giải</h3>
                   <p>{solvedTsumegoCount} bài hoàn thành</p>
@@ -280,7 +308,7 @@ export default function ProfilePage() {
                 className="profile-btn-outline"
                 onClick={() => setShowPasswordSection((p) => !p)}
               >
-                {showPasswordSection ? "Đóng form đổi mật khẩu" : "🔑 Đổi mật khẩu"}
+                {showPasswordSection ? "Đóng form đổi mật khẩu" : "Đổi mật khẩu"}
               </button>
             </div>
 

@@ -22,7 +22,7 @@ interface DemoFrame {
 function buildDemoFrames(): DemoFrame[] {
   let board = createEmptyBoard(DEMO_SIZE);
 
-  // Thế cờ mượn từ bài Tsumego "Bắt quân Trắng" (đã kiểm chứng ở mockTsumegoData.ts):
+  // Thế cờ mượn từ bài Tsumego "Bắt quân Trắng" (kiểm chứng ở data/puzzles/allPuzzles.ts):
   // Đen vây 4 góc, Trắng 2 quân ở giữa — Đen áp sát rồi bắt trọn.
   const setupBlack: Position[] = [
     { x: 2, y: 3 }, // c d

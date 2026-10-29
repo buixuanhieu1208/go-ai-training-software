@@ -190,9 +190,9 @@ export function GameReviewModal({
                 </span>
               </div>
               <div className="review-player-stats">
-                <span className="stat-pill stat-pill--best">🟢 {report.summary.black.best} Tối ưu</span>
-                <span className="stat-pill stat-pill--inaccuracy">🟡 {report.summary.black.inaccuracy} Chưa chuẩn</span>
-                <span className="stat-pill stat-pill--blunder">🔴 {report.summary.black.blunder} Sai lầm</span>
+                <span className="stat-pill stat-pill--best">{report.summary.black.best} Tối ưu</span>
+                <span className="stat-pill stat-pill--inaccuracy">{report.summary.black.inaccuracy} Chưa chuẩn</span>
+                <span className="stat-pill stat-pill--blunder">{report.summary.black.blunder} Sai lầm</span>
               </div>
             </div>
 
@@ -206,9 +206,9 @@ export function GameReviewModal({
                 </span>
               </div>
               <div className="review-player-stats">
-                <span className="stat-pill stat-pill--best">🟢 {report.summary.white.best} Tối ưu</span>
-                <span className="stat-pill stat-pill--inaccuracy">🟡 {report.summary.white.inaccuracy} Chưa chuẩn</span>
-                <span className="stat-pill stat-pill--blunder">🔴 {report.summary.white.blunder} Sai lầm</span>
+                <span className="stat-pill stat-pill--best">{report.summary.white.best} Tối ưu</span>
+                <span className="stat-pill stat-pill--inaccuracy">{report.summary.white.inaccuracy} Chưa chuẩn</span>
+                <span className="stat-pill stat-pill--blunder">{report.summary.white.blunder} Sai lầm</span>
               </div>
             </div>
           </div>
@@ -288,7 +288,7 @@ export function GameReviewModal({
             {report && (
               <div className="game-review-section">
                 <div className="game-review-section__title">
-                  📈 Biểu đồ Tỷ lệ thắng (Winrate Graph)
+                  Biểu đồ Tỷ lệ thắng (Winrate Graph)
                 </div>
                 <WinrateGraph
                   evaluations={report.evaluations}
@@ -302,7 +302,7 @@ export function GameReviewModal({
             {/* 2. Gợi ý biến đổi (Variations) */}
             <div className="game-review-section">
               <div className="game-review-section__title">
-                💡 Gợi ý Biến đổi &amp; Đánh giá nước đi (AI Variations)
+                Gợi ý Biến đổi &amp; Đánh giá nước đi (AI Variations)
               </div>
               <VariationViewer
                 currentEvaluation={currentEval}
@@ -320,8 +320,8 @@ export function GameReviewModal({
                 onClick={handleExtractPuzzles}
               >
                 {extractedPuzzlesCount !== null
-                  ? `✓ Đã trích xuất ${extractedPuzzlesCount} bài tập cá nhân từ các tình huống mắc lỗi!`
-                  : "🎯 Trích xuất bài tập Tsumego từ sai lầm trong ván đấu"}
+                  ? `Đã trích xuất ${extractedPuzzlesCount} bài tập cá nhân từ các tình huống mắc lỗi!`
+                  : "Trích xuất bài tập Tsumego từ sai lầm trong ván đấu"}
               </button>
               {extractedPuzzlesCount !== null && onGoToTsumego && (
                 <button
@@ -340,7 +340,7 @@ export function GameReviewModal({
             {/* 4. Lịch sử nước đi gắn nhãn màu */}
             <div className="game-review-section game-review-section--history">
               <div className="game-review-section__title">
-                📜 Lịch sử nước đi (Click để chuyển nước)
+                Lịch sử nước đi (Click để chuyển nước)
               </div>
               <div className="game-review-history-box">
                 <MoveHistory

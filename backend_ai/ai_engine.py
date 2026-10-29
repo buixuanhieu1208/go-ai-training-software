@@ -1,6 +1,14 @@
 import os
+import sys
 import torch
 from typing import Optional, Tuple
+
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 from models.dual_network import DualCNN
 from mcts.search_tree import MCTSEngine
@@ -19,8 +27,8 @@ WEIGHTS_BY_SIZE = {
 }
 
 DIFFICULTY_MCTS_CONFIG = {
-    "medium": {"simulations": 800, "c_puct": 1.41, "add_root_noise": True},
-    "hard": {"simulations": 8000, "c_puct": 1.1, "add_root_noise": False},
+    "medium": {"simulations": 400, "c_puct": 1.41, "add_root_noise": True},
+    "hard": {"simulations": 800, "c_puct": 1.1, "add_root_noise": False},
 }
 EASY_ROLLOUTS_19 = 100
 EASY_MINIMAX_DEPTH = 2  # bàn 9x9/13x13

@@ -243,10 +243,10 @@ export function WinrateGraph({
             </span>
             {activeEval.quality && activeTurn > 0 && (
               <span className={`winrate-tooltip__badge winrate-tooltip__badge--${activeEval.quality}`}>
-                {activeEval.quality === "best" && "🟢 Tối ưu"}
-                {activeEval.quality === "good" && "🟢 Tốt"}
-                {activeEval.quality === "inaccuracy" && "🟡 Chưa tối ưu"}
-                {activeEval.quality === "blunder" && "🔴 Sai lầm"}
+                {activeEval.quality === "best" && "Tối ưu"}
+                {activeEval.quality === "good" && "Tốt"}
+                {activeEval.quality === "inaccuracy" && "Chưa tối ưu"}
+                {activeEval.quality === "blunder" && "Sai lầm"}
               </span>
             )}
           </div>

@@ -1,0 +1,905 @@
+/* src/components/Legendary/LegendaryPractice.css */
+
+.legendary-practice {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 18px 24px 60px;
+  box-sizing: border-box;
+  color: #e2e8f0;
+  gap: 18px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Header */
+.legendary-practice__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: #181d26;
+  padding: 16px 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.legendary-practice__title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.legendary-practice__meta-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.legendary-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.legendary-practice__title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: -0.3px;
+}
+
+/* Tab Switch (Thực chiến vs Kỳ phổ lịch sử) */
+.legendary-practice__tab-switch {
+  display: flex;
+  background: #0f131a;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 4px;
+}
+
+.legendary-switch-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: transparent;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.legendary-switch-btn:hover {
+  color: #f1f5f9;
+}
+
+.legendary-switch-btn--active {
+  background: #252e3d;
+  color: #d4af37;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Players Strip */
+.legendary-players-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: #141820;
+  padding: 12px 24px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.legendary-player-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.legendary-player-box--turn {
+  background: rgba(212, 175, 55, 0.06);
+  border-color: rgba(212, 175, 55, 0.35);
+  box-shadow: 0 0 14px rgba(212, 175, 55, 0.1);
+}
+
+.legendary-stone-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.legendary-stone-icon--black {
+  background: radial-gradient(circle at 35% 35%, #475569 0%, #090d16 80%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.legendary-stone-icon--white {
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #cbd5e1 90%);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.legendary-player-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.legendary-player-meta strong {
+  font-size: 0.95rem;
+  color: #f1f5f9;
+}
+
+.legendary-player-meta small {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.legendary-turn-chip {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #d4af37;
+  background: rgba(212, 175, 55, 0.15);
+  padding: 3px 8px;
+  border-radius: 12px;
+  letter-spacing: 0.3px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.legendary-vs-divider {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 1px;
+}
+
+/* Main Layout */
+.legendary-practice__main {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 1040px) {
+  .legendary-practice__main {
+    grid-template-columns: 1fr;
+  }
+}
+
+.legendary-practice__board-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.legendary-board-card {
+  display: flex;
+  justify-content: center;
+  background: #1a1e28;
+  padding: 16px;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.legendary-board-status {
+  text-align: center;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: #141820;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  max-width: 580px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.legendary-status-txt {
+  font-size: 0.88rem;
+  color: #94a3b8;
+}
+
+.legendary-status-txt--thinking {
+  color: #d4af37;
+  font-weight: 600;
+}
+
+/* Sidebar Panel */
+.legendary-practice__sidebar {
+  display: flex;
+  flex-direction: column;
+  max-width: 620px;
+  width: 100%;
+}
+
+.legendary-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #181d26;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 22px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.legendary-panel__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.legendary-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #d4af37;
+}
+
+.legendary-section-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.legendary-story-para {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: #cbd5e1;
+}
+
+/* Alerts */
+.legendary-alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  border: 1px solid transparent;
+}
+
+.legendary-alert strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.legendary-alert p {
+  margin: 0;
+}
+
+.legendary-alert--correct {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #10b981;
+}
+
+.legendary-alert--different {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #f59e0b;
+}
+
+.legendary-alert--stuck {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #ef4444;
+}
+
+/* Controls Grid */
+.legendary-controls-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.legendary-ctrl-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #202634;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  padding: 11px 16px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.legendary-ctrl-btn:hover:not(:disabled) {
+  background: #2b3446;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.legendary-ctrl-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.legendary-ctrl-btn--primary {
+  grid-column: span 2;
+  background: #2563eb;
+  color: #fff;
+  border-color: #3b82f6;
+}
+
+.legendary-ctrl-btn--primary:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+/* Lesson Card */
+.legendary-lesson-card {
+  background: #131720;
+  border-radius: 8px;
+  padding: 14px 18px;
+  border-left: 3px solid #d4af37;
+}
+
+.legendary-lesson-title {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #d4af37;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.legendary-lesson-body {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #cbd5e1;
+  font-style: italic;
+}
+
+/* TIMELINE CONTROLLER (REPLAY MODE) */
+.legendary-timeline-controller {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: #131720;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.legendary-timeline-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.legendary-timeline-slider {
+  flex: 1;
+  accent-color: #d4af37;
+  cursor: pointer;
+}
+
+.legendary-timeline-counter {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #d4af37;
+  background: rgba(212, 175, 55, 0.12);
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  min-width: 45px;
+  text-align: center;
+}
+
+.legendary-playback-btns {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.legendary-playback-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #202634;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.legendary-playback-btn:hover:not(:disabled) {
+  background: #2b3446;
+  color: #fff;
+}
+
+.legendary-playback-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.legendary-playback-btn--play {
+  background: #d4af37;
+  color: #090d16;
+  border-color: #d4af37;
+}
+
+.legendary-playback-btn--play:hover:not(:disabled) {
+  background: #f1c40f;
+  color: #000;
+}
+
+/* Commentary Box */
+.legendary-commentary-box {
+  background: #131720;
+  border-radius: 8px;
+  padding: 14px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.legendary-commentary-head {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #d4af37;
+  margin-bottom: 6px;
+}
+
+.legendary-commentary-text {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: #e2e8f0;
+}
+
+.legendary-commentary-sub {
+  margin: 10px 0 0 0;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  line-height: 1.5;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  padding-top: 8px;
+}
+
+/* Move Sheet */
+.legendary-sheet-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.legendary-sheet-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.5px;
+}
+
+.legendary-sheet-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 150px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.legendary-sheet-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #141820;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 5px 9px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.legendary-sheet-cell:hover {
+  background: #202634;
+  color: #fff;
+}
+
+.legendary-sheet-cell--active {
+  background: #252e3d;
+  color: #d4af37;
+  border-color: #d4af37;
+}
+
+.legendary-sheet-cell--key {
+  border-color: #d4af37;
+  font-weight: 700;
+}
+
+.legendary-cell-stone {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.legendary-cell-stone--black {
+  background: #000;
+  border: 1px solid #64748b;
+}
+
+.legendary-cell-stone--white {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+}
+
+.legendary-cell-num {
+  font-family: monospace;
+}
+
+.legendary-cell-pos {
+  font-weight: 600;
+}
+
+/* Action Rows */
+.legendary-action-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.legendary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.legendary-btn--primary {
+  background: #2563eb;
+  color: #fff;
+}
+
+.legendary-btn--primary:hover {
+  background: #1d4ed8;
+}
+
+.legendary-btn--ghost {
+  background: transparent;
+  color: #94a3b8;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.legendary-btn--ghost:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* MODAL LỜI ĐIỂM ĐẠO */
+.legendary-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.legendary-riddle-modal {
+  background: #181d26;
+  border-radius: 16px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  padding: 32px 36px;
+  max-width: 540px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+}
+
+.legendary-riddle-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(212, 175, 55, 0.1);
+  color: #d4af37;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.legendary-riddle-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.legendary-riddle-quote {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: #f1f5f9;
+  font-style: italic;
+  background: #131720;
+  padding: 18px 24px;
+  border-radius: 10px;
+  border-left: 4px solid #d4af37;
+  text-align: left;
+}
+
+.legendary-riddle-sub {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KHỐI MỤC TIÊU CHIẾN THẮNG & KẾT QUẢ VÁN ĐẤU
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.legendary-objective-box {
+  background: #151922;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-left: 4px solid #d4af37;
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.legendary-objective-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fbbf24;
+}
+
+.legendary-objective-head h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.legendary-objective-box p {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: #94a3b8;
+}
+
+/* KHỐI KẾT THÚC TRẬN ĐẤU (GAME OVER) */
+.legendary-gameover-card {
+  background: #1a1e28;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+.legendary-gameover-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+.legendary-gameover-desc {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: #cbd5e1;
+}
+
+.legendary-gameover-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  justify-content: center;
+}
+
+.legendary-ctrl-btn--danger {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.2);
+}
+
+.legendary-ctrl-btn--danger:hover {
+  background: rgba(248, 113, 113, 0.12);
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #ef4444;
+}
+
+/* ============================================================
+   WIDGET NHIỆM VỤ CHIẾN DỊCH 3 SAO (⭐⭐⭐)
+   ============================================================ */
+.legendary-mission-card {
+  background: #151a23;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+
+.legendary-mission-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 10px;
+}
+
+.legendary-mission-card__title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legendary-mission-card__title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: #f1f5f9;
+  text-transform: uppercase;
+}
+
+.legendary-mission-card__stars-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+
+.legendary-stars-count {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.legendary-stars-icons {
+  display: flex;
+  gap: 2px;
+}
+
+.legendary-mission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.legendary-mission-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 9px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.legendary-mission-item--completed {
+  background: rgba(16, 185, 129, 0.06);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.legendary-mission-item__left {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.legendary-star-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.legendary-mission-item__info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.legendary-mission-item__name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.legendary-mission-item__desc {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #94a3b8;
+}
+
+.legendary-mission-status-pill {
+  align-self: flex-start;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.legendary-mission-status-pill--success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.35);
+  font-weight: 700;
+}
+
+.legendary-gameover-stars-wrap {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}

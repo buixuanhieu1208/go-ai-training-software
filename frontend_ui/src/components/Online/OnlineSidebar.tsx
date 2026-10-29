@@ -1,5 +1,6 @@
 // src/components/Online/OnlineSidebar.tsx
 import type { Move } from "../../types/go";
+import type { UseMatchResult } from "../../types/match";
 import { PlayTab } from "./tabs/PlayTab";
 import { FriendsTab } from "./tabs/FriendsTab";
 import { AnalysisTab } from "./tabs/AnalysisTab";
@@ -13,6 +14,9 @@ interface OnlineSidebarProps {
   onEnterMatch: (matchId: string) => void;
   activeMoveHistory: Move[];
   boardSize: number;
+  activeMatchId?: string | null;
+  matchState?: UseMatchResult | null;
+  onResign?: () => void;
 }
 
 const TABS: { id: SidebarTab; label: string; svg: string }[] = [
@@ -33,26 +37,52 @@ const TABS: { id: SidebarTab; label: string; svg: string }[] = [
   },
 ];
 
-export function OnlineSidebar({ activeTab, onChangeTab, onEnterMatch, activeMoveHistory, boardSize }: OnlineSidebarProps) {
+export function OnlineSidebar({
+  activeTab,
+  onChangeTab,
+  onEnterMatch,
+  activeMoveHistory,
+  boardSize,
+  activeMatchId,
+  matchState,
+  onResign,
+}: OnlineSidebarProps) {
+  const isOngoing = Boolean(activeMatchId && matchState?.match?.status === "ongoing");
+
   return (
     <div className="online-sidebar">
       <div className="online-sidebar__tabs">
         {TABS.map((tab) => (
           <button
             key={tab.id}
-            className={`online-sidebar__tab ${activeTab === tab.id ? 'online-sidebar__tab--active' : ''}`}
+            className={`online-sidebar__tab ${activeTab === tab.id ? "online-sidebar__tab--active" : ""}`}
             onClick={() => onChangeTab(tab.id)}
             type="button"
           >
             <span className="online-sidebar__tab-icon" dangerouslySetInnerHTML={{ __html: tab.svg }} />
-            {tab.label}
+            <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              {tab.label}
+              {tab.id === "play" && isOngoing && (
+                <span className="online-sidebar__live-dot" title="Trận đấu đang diễn ra" />
+              )}
+            </span>
           </button>
         ))}
       </div>
       <div className="online-sidebar__content">
-        {activeTab === "play" && <PlayTab onEnterMatch={onEnterMatch} />}
+        {activeTab === "play" && (
+          <PlayTab
+            onEnterMatch={onEnterMatch}
+            activeMatchId={activeMatchId}
+            matchState={matchState}
+            onResign={onResign}
+            onSwitchToAnalysis={() => onChangeTab("analysis")}
+          />
+        )}
         {activeTab === "friends" && <FriendsTab />}
-        {activeTab === "analysis" && <AnalysisTab moveHistory={activeMoveHistory} boardSize={boardSize} />}
+        {activeTab === "analysis" && (
+          <AnalysisTab moveHistory={activeMoveHistory} boardSize={boardSize} />
+        )}
       </div>
     </div>
   );

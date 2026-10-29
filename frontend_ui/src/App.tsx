@@ -10,6 +10,15 @@ import { WinRateBar } from "./components/WinRateBar/WinRateBar";
 import { ControlPanel } from "./components/ControlPanel/ControlPanel";
 import { MoveHistory } from "./components/MoveHistory/MoveHistory";
 import { TsumegoHub } from "./components/Tsumego/TsumegoHub";
+import { LegendaryHub } from "./components/Legendary/LegendaryHub";
+import { ForumPage } from "./components/Forum/ForumPage";
+import { SettingsPage } from "./components/Settings/SettingsPage";
+import { AboutPage } from "./components/About/AboutPage";
+import { CoursesPage } from "./components/Learn/CoursesPage";
+import { VideosPage } from "./components/Learn/VideosPage";
+import { LiveMatchesPage } from "./components/Watch/LiveMatchesPage";
+import { GameArchivePage } from "./components/Archive/GameArchivePage";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import { Home } from "./components/Home/Home";
 import { Login } from "./components/Auth/Login";
 import { Register } from "./components/Auth/Register";
@@ -26,12 +35,14 @@ import type { GameMode } from "./types/mode";
 import GameRoom from "./components/GameRoom";
 import "./styles/tokens.css";
 import "./App.css";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import LocalGameRoom from "./components/LocalGameRoom";
 import JoinRoom from "./components/JoinRoom";
 import OnlineHub from "./components/Online/OnlineHub";
 import ProfilePage from "./components/Profile/ProfilePage";
 import AddFriend from "./components/AddFriend";
+import LeaderboardPage from "./components/Leaderboard/LeaderboardPage";
+import { recordAiDefeat } from "./services/aiLeaderboardService";
 import { GameResultModal } from "./components/GameResult/GameResultModal";
 import { GameSetupModal } from "./components/GameSetup/GameSetupModal";
 import { GameReviewModal } from "./components/Analysis/GameReviewModal";
@@ -40,6 +51,7 @@ import type { GameReviewReport } from "./types/review";
 import { calculateScore } from "./utils/goRules";
 import { generateSgfString, downloadSgfFile } from "./utils/sgfExporter";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { ConfirmLeaveModal } from "./components/ConfirmLeaveModal/ConfirmLeaveModal";
 
 type Screen = "menu" | "game" | "login" | "register";
 
@@ -52,6 +64,7 @@ const MODE_LABEL: Record<GameMode, string> = {
   pve: "PvE — Đấu với AI",
   eve: "EvE — AI vs AI",
   tsumego: "Luyện Tsumego",
+  legendary: "Đấu trường huyền thoại",
 };
 
 interface BackendMoveResponse {
@@ -68,6 +81,7 @@ function parseRoute(pathname: string): { screen: Screen; mode: GameMode } {
   if (p === "/login") return { screen: "login", mode: "pvp-local" };
   if (p === "/register") return { screen: "register", mode: "pvp-local" };
   if (p === "/tsumego" || p === "/play/tsumego") return { screen: "game", mode: "tsumego" };
+  if (p === "/legendary" || p === "/play/legendary") return { screen: "game", mode: "legendary" };
   if (p === "/pve" || p === "/play/pve") return { screen: "game", mode: "pve" };
   if (p === "/pvp" || p === "/play/pvp" || p === "/play/pvp-local" || p === "/play/local") return { screen: "game", mode: "pvp-local" };
   if (p === "/eve" || p === "/play/eve") return { screen: "game", mode: "eve" };
@@ -82,7 +96,9 @@ function parseRoute(pathname: string): { screen: Screen; mode: GameMode } {
 function GameApp() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
+  const hasRecordedAiWinRef = useRef(false);
   const [aiDifficulty, setAiDifficulty] = useState<"easy" | "medium" | "hard">("hard");
   const [playerColor, setPlayerColor] = useState<"black" | "white">("black");
   const [ruleSet, setRuleSet] = useState<"chinese" | "japanese">("chinese");
@@ -90,7 +106,10 @@ function GameApp() {
   const [mode, setMode] = useState<GameMode>(() => parseRoute(window.location.pathname).mode);
   const [isGameStarted, setIsGameStarted] = useState(false);
   const [isSetupModalOpen, setIsSetupModalOpen] = useState(
-    () => parseRoute(window.location.pathname).screen === "game" && parseRoute(window.location.pathname).mode !== "tsumego"
+    () =>
+      parseRoute(window.location.pathname).screen === "game" &&
+      parseRoute(window.location.pathname).mode !== "tsumego" &&
+      parseRoute(window.location.pathname).mode !== "legendary"
   );
 
   // Đồng bộ state khi URL trên thanh địa chỉ thay đổi (F5, bấm nút browser back/forward, direct link)
@@ -98,7 +117,7 @@ function GameApp() {
     const parsed = parseRoute(location.pathname);
     setScreen(parsed.screen);
     setMode(parsed.mode);
-    if (parsed.screen === "game" && parsed.mode !== "tsumego") {
+    if (parsed.screen === "game" && parsed.mode !== "tsumego" && parsed.mode !== "legendary") {
       setIsSetupModalOpen((prev) => (!isGameStarted ? true : prev));
     } else {
       setIsSetupModalOpen(false);
@@ -107,6 +126,8 @@ function GameApp() {
   const [rulesOpen, setRulesOpen] = useState(false);
   const [boardSize, setBoardSize] = useState<BoardSize>(19);
   const [evePaused, setEvePaused] = useState(false);
+  const [autoRestartEvE, setAutoRestartEvE] = useState<boolean>(true);
+  const [eveRestartCountdown, setEveRestartCountdown] = useState<number | null>(null);
   // Lý do kết thúc ván + điểm từ Backend (nếu có) để hiển thị GameResultModal.
   const [gameEndReason, setGameEndReason] = useState<"resign" | "double-pass" | "end" | null>(null);
   const [backendScore, setBackendScore] = useState<{ black: number; white: number } | null>(null);
@@ -118,9 +139,24 @@ function GameApp() {
   // Khác với isHintThinking (của useAiAnalysis) chỉ dùng để hiện loading cho WinRateBar,
   // isAiThinking dùng để khoá bàn cờ và nút Undo để người chơi không can thiệp lúc AI đang nghĩ.
   const [isAiThinking, setIsAiThinking] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiRetryTrigger, setAiRetryTrigger] = useState(0);
   const aiRequestInFlight = useRef(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   const { gameState, placeStone, pass, resign, undo, resetGame } = useGameState(boardSize);
+
+  // Cảnh báo người chơi khi cố tình refresh hoặc đóng tab trình duyệt lúc ván cờ đang diễn ra
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (screen === "game" && gameState.moveHistory.length > 0 && !gameState.isFinished) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [screen, gameState.moveHistory.length, gameState.isFinished]);
   const { analysis, isThinking: isHintThinking, hintsEnabled, setHintsEnabled } = useAiAnalysis(
     gameState.board,
     gameState.currentPlayer,
@@ -205,6 +241,7 @@ function GameApp() {
     const fetchAiMove = async () => {
       aiRequestInFlight.current = true;
       setIsAiThinking(true);
+      setAiError(null);
 
       try {
         // 1. Đếm số lần pass liên tiếp
@@ -220,20 +257,42 @@ function GameApp() {
         );
         const currentPlayerNumeric = gameState.currentPlayer === "black" ? 1 : -1;
 
-        // 3. GỌI API BACKEND
-        const response = await fetch(AI_API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            board: backendBoard,
-            current_player: currentPlayerNumeric,
-            consecutive_passes: passes,
-            difficulty: aiDifficulty,
-            // Điều 9 (KO): Backend không giữ lịch sử giữa các request nên phải gửi điểm đang bị cấm.
-            // Backend dùng [hàng, cột] = [y, x].
-            ko_point: gameState.koPoint ? [gameState.koPoint.y, gameState.koPoint.x] : null,
-          }),
-        });
+        // 3. GỌI API BACKEND VỚI CƠ CHẾ TỰ ĐỘNG THỬ LẠI (AUTO-RETRY)
+        let response: Response | null = null;
+        let lastError: any = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            response = await fetch(AI_API_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                board: backendBoard,
+                current_player: currentPlayerNumeric,
+                consecutive_passes: passes,
+                difficulty: aiDifficulty,
+                // Điều 9 (KO): Backend không giữ lịch sử giữa các request nên phải gửi điểm đang bị cấm.
+                // Backend dùng [hàng, cột] = [y, x].
+                ko_point: gameState.koPoint ? [gameState.koPoint.y, gameState.koPoint.x] : null,
+              }),
+            });
+            if (response.ok) break;
+            if (response.status >= 500 && attempt < 2) {
+              await new Promise((r) => setTimeout(r, 1000));
+              continue;
+            }
+            break;
+          } catch (err) {
+            lastError = err;
+            if (attempt < 2) {
+              await new Promise((r) => setTimeout(r, 1000));
+              continue;
+            }
+          }
+        }
+
+        if (!response) {
+          throw lastError || new Error("Không thể kết nối đến máy chủ AI (Failed to fetch)");
+        }
 
         if (!response.ok) {
           // Lấy thông điệp lỗi Backend (vd: 422 "Thế cờ bất hợp lệ") để báo cho người chơi.
@@ -274,11 +333,9 @@ function GameApp() {
         }
       } catch (error) {
         console.error("Lỗi khi kết nối với AI Engine:", error);
-        // Trước đây lỗi chỉ ghi console -> lượt vẫn của AI, bàn cờ bị khóa, người chơi không biết vì sao.
-        // Giờ báo rõ và mở lối thoát: Undo / Ván mới (EvE thì tự tạm dừng, bấm tiếp tục để thử lại).
         if (mode === "eve") setEvePaused(true);
         const reason = error instanceof Error ? error.message : String(error);
-        alert(`⚠️ AI không thể đi nước này.\n\n${reason}\n\nBạn có thể bấm Undo (hoàn nước) hoặc Ván mới.`);
+        setAiError(reason);
       } finally {
         setIsAiThinking(false);
         aiRequestInFlight.current = false;
@@ -287,7 +344,7 @@ function GameApp() {
 
     fetchAiMove();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAiControlledTurn, gameState.currentPlayer, gameState.isFinished, aiDifficulty]);
+  }, [isAiControlledTurn, gameState.currentPlayer, gameState.isFinished, aiDifficulty, aiRetryTrigger]);
 
   const annotatedMoveHistory = useMemo(() => {
     if (!refereeResult) return gameState.moveHistory;
@@ -335,10 +392,12 @@ function GameApp() {
       } else {
         undo(); // chỉ 1 nước
       }
-      // Reset cờ AI để tránh state cũ kích hoạt request mới sai lúc
+      // Reset cờ AI và lỗi AI để tránh state cũ kích hoạt request mới sai lúc
       aiRequestInFlight.current = false;
+      setAiError(null);
     } else {
       undo();
+      setAiError(null);
     }
   }, [mode, gameState.moveHistory.length, undo]);
 
@@ -385,6 +444,43 @@ function GameApp() {
     );
   }, [gameState.isFinished, gameState.board, gameState.capturedBlack, gameState.capturedWhite, backendScore, ruleSet]);
 
+  // Tự động ghi nhận chiến tích khi người chơi đánh bại AI trong chế độ PvE
+  useEffect(() => {
+    if (!gameState.isFinished || !scoreResult || mode !== "pve") return;
+    if (hasRecordedAiWinRef.current) return;
+
+    let finalWinner: "black" | "white" = scoreResult.blackScore > scoreResult.whiteScore ? "black" : "white";
+    if (gameEndReason === "resign") {
+      finalWinner = gameState.currentPlayer === "black" ? "white" : "black";
+    }
+
+    if (finalWinner === playerColor) {
+      hasRecordedAiWinRef.current = true;
+      const margin = Math.abs(scoreResult.blackScore - scoreResult.whiteScore);
+      recordAiDefeat(user, {
+        boardSize,
+        difficulty: aiDifficulty,
+        playerColor,
+        winReason: gameEndReason ?? "end",
+        scoreMargin: margin,
+        moveCount: gameState.moveHistory.length,
+      }).catch((err) => {
+        console.error("Lỗi khi ghi nhận thành tích diệt AI:", err);
+      });
+    }
+  }, [
+    gameState.isFinished,
+    scoreResult,
+    mode,
+    gameEndReason,
+    gameState.currentPlayer,
+    playerColor,
+    user,
+    boardSize,
+    aiDifficulty,
+    gameState.moveHistory.length,
+  ]);
+
   const handleExportSgf = useCallback(() => {
     if (gameState.moveHistory.length === 0) return;
     const currentKomi = ruleSet === "chinese" ? 7.5 : 6.5;
@@ -415,13 +511,14 @@ function GameApp() {
     clearEffects();
     setGameEndReason(null);
     setBackendScore(null);
+    hasRecordedAiWinRef.current = false;
     setMode(nextMode);
     setScreen("game");
     setIsGameStarted(false);
 
-    if (nextMode === "tsumego") {
+    if (nextMode === "tsumego" || nextMode === "legendary") {
       setIsSetupModalOpen(false);
-      navigate("/tsumego");
+      navigate(`/${nextMode}`);
     } else {
       setIsSetupModalOpen(true);
       if (nextMode === "pve") {
@@ -451,6 +548,7 @@ function GameApp() {
     clearAnalysis();
     setGameEndReason(null);
     setBackendScore(null);
+    hasRecordedAiWinRef.current = false;
     setEvePaused(false);
     setIsGameStarted(true);
     setIsSetupModalOpen(false);
@@ -466,6 +564,16 @@ function GameApp() {
   };
 
   const handleBackToMenu = () => {
+    // Nếu ván cờ đang đánh dở dang (đã có nước đi và chưa kết thúc), yêu cầu xác nhận để tránh bấm nhầm
+    if (screen === "game" && gameState.moveHistory.length > 0 && !gameState.isFinished) {
+      setShowLeaveConfirm(true);
+      return;
+    }
+    confirmLeaveGame();
+  };
+
+  const confirmLeaveGame = () => {
+    setShowLeaveConfirm(false);
     setIsSetupModalOpen(false);
     setIsGameStarted(false);
     navigate("/");
@@ -482,7 +590,30 @@ function GameApp() {
     clearAnalysis();
     setGameEndReason(null);
     setBackendScore(null);
+    hasRecordedAiWinRef.current = false;
   };
+
+  // EvE (AI vs AI): Tự động bắt đầu ván mới sau 3s khi ván đấu kết thúc
+  useEffect(() => {
+    if (mode !== "eve" || !gameState.isFinished || !autoRestartEvE) {
+      setEveRestartCountdown(null);
+      return;
+    }
+
+    setEveRestartCountdown(3);
+    const interval = setInterval(() => {
+      setEveRestartCountdown((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          handleResetGame();
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [mode, gameState.isFinished, autoRestartEvE, boardSize]);
 
   const header = (
     <div className="app-header">
@@ -521,7 +652,7 @@ function GameApp() {
             onClick={() => setIsSetupModalOpen(true)}
             title="Mở bảng cài đặt kích thước bàn cờ & độ khó"
           >
-            ⚙ Tùy chọn ván đấu
+            Tùy chọn ván đấu
           </button>
         </div>
       )}
@@ -568,6 +699,19 @@ function GameApp() {
       </div>
     );
   }
+
+  if (mode === "legendary") {
+    return (
+      <div className="game-layout">
+        <GameBackdrop />
+        <header className="game-layout__header">{header}</header>
+        <LegendaryHub onBackToMenu={handleBackToMenu} />
+        {rulesModal}
+        <ChatBox />
+      </div>
+    );
+  }
+
 
   const boardDisabled =
     !isGameStarted ||
@@ -687,20 +831,64 @@ function GameApp() {
           )
         }
         board={
-          <Board
-            board={gameState.board}
-            boardSize={boardSize}
-            onPointClick={(pos) => {
-              if (boardDisabled) return;
-              const success = placeStone(pos);
-              if (!success) play("error");
-            }}
-            policyHints={analysis?.policyHints}
-            showHints={hintsEnabled}
-            lastMove={lastMove?.position ?? null}
-            disabled={boardDisabled}
-            floatingScores={floatingScores}
-          />
+          <div style={{ position: "relative" }}>
+            {aiError && (
+              <div className="ai-error-banner" role="alert">
+                <div className="ai-error-banner__content">
+                  <div className="ai-error-banner__text" title={aiError}>
+                    <strong>Lỗi kết nối AI:</strong> {aiError}
+                  </div>
+                </div>
+                <div className="ai-error-banner__actions">
+                  <button
+                    type="button"
+                    className="ai-error-btn ai-error-btn--retry"
+                    onClick={() => {
+                      setAiError(null);
+                      setAiRetryTrigger((t) => t + 1);
+                    }}
+                  >
+                    Thử lại
+                  </button>
+                  <button
+                    type="button"
+                    className="ai-error-btn ai-error-btn--pass"
+                    onClick={() => {
+                      setAiError(null);
+                      const lastMove = gameState.moveHistory[gameState.moveHistory.length - 1];
+                      if (lastMove && lastMove.position === null) setGameEndReason('double-pass');
+                      pass();
+                    }}
+                    title="Cho AI bỏ lượt để trận đấu tiếp tục hoặc kết thúc"
+                  >
+                    Bỏ lượt cho AI
+                  </button>
+                  <button
+                    type="button"
+                    className="ai-error-btn ai-error-btn--dismiss"
+                    onClick={() => setAiError(null)}
+                    title="Đóng thông báo"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
+            <Board
+              board={gameState.board}
+              boardSize={boardSize}
+              onPointClick={(pos) => {
+                if (boardDisabled) return;
+                const success = placeStone(pos);
+                if (!success) play("error");
+              }}
+              policyHints={analysis?.policyHints}
+              showHints={hintsEnabled}
+              lastMove={lastMove?.position ?? null}
+              disabled={boardDisabled}
+              floatingScores={floatingScores}
+            />
+          </div>
         }
         winRateBar={
           <WinRateBar
@@ -722,7 +910,15 @@ function GameApp() {
             soundEnabled={soundEnabled}
             onToggleSound={setSoundEnabled}
             autoplayControls={
-              mode === "eve" ? { isPaused: evePaused, onToggle: () => setEvePaused((p) => !p) } : undefined
+              mode === "eve"
+                ? {
+                    isPaused: evePaused,
+                    onToggle: () => setEvePaused((p) => !p),
+                    autoRestart: autoRestartEvE,
+                    onToggleAutoRestart: () => setAutoRestartEvE((p) => !p),
+                    countdown: eveRestartCountdown,
+                  }
+                : undefined
             }
           />
         }
@@ -765,6 +961,9 @@ function GameApp() {
             open
             winner={finalWinner}
             winnerName={winnerName}
+            isAiMatch={mode === "pve"}
+            aiDifficulty={aiDifficulty}
+            onViewLeaderboard={() => navigate("/leaderboard")}
             reason={gameEndReason ?? "end"}
             blackScore={scoreResult.blackScore}
             whiteScore={scoreResult.whiteScore}
@@ -812,6 +1011,24 @@ function GameApp() {
         onApplyMidGame={handleApplyOptionsMidGame}
       />
       {rulesModal}
+      <ConfirmLeaveModal
+        open={showLeaveConfirm}
+        title="Rời về Menu chính?"
+        message={
+          <>
+            Ván cờ hiện tại đang diễn ra và chưa kết thúc.
+            <br />
+            Nếu rời về Menu lúc này, <strong>tiến trình ván đấu sẽ không được lưu</strong>.
+            <br /><br />
+            Bạn có chắc chắn muốn rời đi không?
+          </>
+        }
+        confirmText="Rời về Menu"
+        cancelText="Tiếp tục chơi"
+        isDanger={true}
+        onConfirm={confirmLeaveGame}
+        onCancel={() => setShowLeaveConfirm(false)}
+      />
       <ChatBox />
     </>
   );
@@ -825,25 +1042,36 @@ function GameApp() {
 function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/online" element={<OnlineHub />} />
-            <Route path="/game/local" element={<LocalGameRoom />} />
-            <Route path="/game/:matchId" element={<GameRoom />} />
-            <Route path="/join/:roomId" element={<JoinRoom />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/add-friend/:uid" element={<AddFriend />} />
-            <Route path="/pve" element={<GameApp />} />
-            <Route path="/pvp" element={<GameApp />} />
-            <Route path="/eve" element={<GameApp />} />
-            <Route path="/tsumego" element={<GameApp />} />
-            <Route path="/login" element={<GameApp />} />
-            <Route path="/register" element={<GameApp />} />
-            <Route path="/*" element={<GameApp />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/leaderboard" element={<LeaderboardPage />} />
+              <Route path="/online" element={<OnlineHub />} />
+              <Route path="/game/local" element={<LocalGameRoom />} />
+              <Route path="/game/:matchId" element={<GameRoom />} />
+              <Route path="/join/:roomId" element={<JoinRoom />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/add-friend/:uid" element={<AddFriend />} />
+              <Route path="/pve" element={<GameApp />} />
+              <Route path="/pvp" element={<GameApp />} />
+              <Route path="/eve" element={<GameApp />} />
+              <Route path="/tsumego" element={<GameApp />} />
+              <Route path="/legendary" element={<GameApp />} />
+              <Route path="/forum" element={<ForumPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/learn/courses" element={<CoursesPage />} />
+              <Route path="/learn/videos" element={<VideosPage />} />
+              <Route path="/watch/live" element={<LiveMatchesPage />} />
+              <Route path="/archive" element={<GameArchivePage />} />
+              <Route path="/login" element={<GameApp />} />
+              <Route path="/register" element={<GameApp />} />
+              <Route path="/*" element={<GameApp />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

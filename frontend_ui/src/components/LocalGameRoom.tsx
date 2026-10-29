@@ -1,11 +1,11 @@
-// src/components/LocalGameRoom.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { GameLayout } from "./Layout/GameLayout";
 import { Board } from "./Board/Board";
 import { MoveHistory } from "./MoveHistory/MoveHistory";
 import { PlayerCard } from "./PlayerCard/PlayerCard";
 import { StoneBowl } from "./StoneBowl/StoneBowl";
+import { ConfirmLeaveModal } from "./ConfirmLeaveModal/ConfirmLeaveModal";
 import { computeNextBoard } from "../utils/goRules";
 import type { BoardMatrix, BoardSize, Move, Position, FloatingScoreEffect } from "../types/go";
 import "./GameRoom.css";
@@ -29,8 +29,34 @@ export default function LocalGameRoom() {
   const [error, setError] = useState<string | null>(null);
   const [lastMove, setLastMove] = useState<Position | null>(null);
   const [floatingScores, setFloatingScores] = useState<FloatingScoreEffect[]>([]);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   const isFinished = consecutivePasses >= 2;
+
+  // Cảnh báo người chơi khi cố tình refresh hoặc đóng tab lúc ván đấu đang diễn ra
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (moveHistory.length > 0 && !isFinished) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [moveHistory.length, isFinished]);
+
+  const handleBackClick = () => {
+    if (moveHistory.length > 0 && !isFinished) {
+      setShowLeaveConfirm(true);
+      return;
+    }
+    navigate("/online");
+  };
+
+  const confirmLeave = () => {
+    setShowLeaveConfirm(false);
+    navigate("/online");
+  };
 
   const applyMove = (
     position: Position | null,
@@ -107,7 +133,7 @@ export default function LocalGameRoom() {
   const header = (
     <div className="app-header">
       <div className="app-header__title">
-        <button className="app-header__back" onClick={() => navigate("/online")} type="button">
+        <button className="app-header__back" onClick={handleBackClick} type="button">
           ← Về sảnh chờ
         </button>
         <span className="app-header__logo">碁</span>
@@ -120,7 +146,8 @@ export default function LocalGameRoom() {
   );
 
   return (
-    <GameLayout
+    <>
+      <GameLayout
       header={header}
       moveHistory={
         <>
@@ -167,5 +194,24 @@ export default function LocalGameRoom() {
         </div>
       }
     />
+    <ConfirmLeaveModal
+      open={showLeaveConfirm}
+      title="Rời khỏi ván đấu?"
+      message={
+        <>
+          Ván cờ cục bộ hiện tại đang diễn ra và chưa kết thúc.
+          <br />
+          Nếu rời về sảnh lúc này, <strong>tiến trình ván đấu sẽ không được lưu</strong>.
+          <br /><br />
+          Bạn có chắc chắn muốn rời đi không?
+        </>
+      }
+      confirmText="Rời về sảnh"
+      cancelText="Tiếp tục chơi"
+      isDanger={true}
+      onConfirm={confirmLeave}
+      onCancel={() => setShowLeaveConfirm(false)}
+    />
+    </>
   );
 }

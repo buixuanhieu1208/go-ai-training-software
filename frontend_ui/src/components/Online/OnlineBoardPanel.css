@@ -136,3 +136,16 @@
 @keyframes obp-spin {
   to { transform: rotate(360deg); }
 }
+
+@media (max-width: 600px) {
+  .online-board-panel--idle {
+    min-height: 280px;
+  }
+  .obp-idle__text {
+    padding: var(--space-md);
+  }
+  .obp-idle__logo {
+    font-size: 38px;
+    margin-bottom: 2px;
+  }
+}

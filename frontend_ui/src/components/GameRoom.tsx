@@ -1,5 +1,4 @@
-// src/components/GameRoom.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useMatch } from "../hooks/useMatch";
@@ -8,6 +7,8 @@ import { Board } from "./Board/Board";
 import { MoveHistory } from "./MoveHistory/MoveHistory";
 import { PlayerCard } from "./PlayerCard/PlayerCard";
 import { StoneBowl } from "./StoneBowl/StoneBowl";
+import { ChatBox } from "./ChatBox/ChatBox";
+import { ConfirmLeaveModal } from "./ConfirmLeaveModal/ConfirmLeaveModal";
 import type { UseMatchResult } from "../types/match";
 import "./GameRoom.css";
 
@@ -18,6 +19,7 @@ export default function GameRoom() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const [confirmingResign, setConfirmingResign] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   const {
     match,
@@ -66,8 +68,31 @@ export default function GameRoom() {
   const waitingForOpponent = match.mode === "pvp" && (!match.players.black || !match.players.white);
   const boardDisabled = !isMyTurn || match.status === "finished" || waitingForOpponent;
 
-  const handleLeave = async () => {
-    if (match.status === "ongoing" && myColor) await resign();
+  // Cảnh báo khi người chơi cố tình refresh hoặc đóng tab trình duyệt trong trận online
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (match?.status === "ongoing" && myColor) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [match?.status, myColor]);
+
+  const handleLeave = () => {
+    if (match.status === "ongoing" && myColor) {
+      setShowLeaveConfirm(true);
+      return;
+    }
+    navigate("/online");
+  };
+
+  const confirmLeave = async () => {
+    setShowLeaveConfirm(false);
+    if (match.status === "ongoing" && myColor) {
+      await resign();
+    }
     navigate("/online");
   };
 
@@ -109,82 +134,112 @@ export default function GameRoom() {
   );
 
   return (
-    <GameLayout
-      header={header}
-      moveHistory={
-        <>
-          {opponent && (
-            <div className="game-room__opponent">
-              {opponent.photoURL ? (
-                <img src={opponent.photoURL} alt={opponent.displayName} className="game-room__opponent-avatar" />
-              ) : (
-                <div className="game-room__opponent-avatar game-room__opponent-avatar--fallback">
-                  {opponent.uid === "AI_ENGINE" ? "AI" : opponent.displayName[0]}
+    <>
+      <GameLayout
+        header={header}
+        moveHistory={
+          <>
+            {opponent && (
+              <div className="game-room__opponent">
+                {opponent.photoURL ? (
+                  <img src={opponent.photoURL} alt={opponent.displayName} className="game-room__opponent-avatar" />
+                ) : (
+                  <div className="game-room__opponent-avatar game-room__opponent-avatar--fallback">
+                    {opponent.uid === "AI_ENGINE" ? "AI" : opponent.displayName[0]}
+                  </div>
+                )}
+                <div>
+                  <div className="game-room__opponent-name">{opponent.displayName}</div>
+                  <div className="game-room__opponent-meta">{opponent.elo ? `ELO ${opponent.elo}` : "AI Engine"}</div>
                 </div>
-              )}
-              <div>
-                <div className="game-room__opponent-name">{opponent.displayName}</div>
-                <div className="game-room__opponent-meta">{opponent.elo ? `ELO ${opponent.elo}` : "AI Engine"}</div>
               </div>
-            </div>
-          )}
-          {waitingForOpponent && <div className="game-room__banner game-room__banner--warning">Đang chờ đối thủ vào phòng...</div>}
-          {moveError && <div className="game-room__banner game-room__banner--error">{moveError}</div>}
-          <MoveHistory moves={moveHistory} />
-        </>
-      }
-      leftBowl={
-        <StoneBowl color="black" side="left" label="Hũ quân Đen" total={STONES_PER_BOWL} remaining={Math.max(0, STONES_PER_BOWL - stonesUsedBlack)} />
-      }
-      rightBowl={
-        <StoneBowl color="white" side="right" label="Hũ quân Trắng" total={STONES_PER_BOWL} remaining={Math.max(0, STONES_PER_BOWL - stonesUsedWhite)} />
-      }
-      topBar={
-        <PlayerCard
-          color="white"
-          label={match.players.white?.displayName ?? "Trắng"}
-          capturedCount={match.capturedWhite}
-          isActive={!waitingForOpponent && match.status === "ongoing" && match.currentPlayer === "white"}
+            )}
+            {waitingForOpponent && <div className="game-room__banner game-room__banner--warning">Đang chờ đối thủ vào phòng...</div>}
+            {moveError && <div className="game-room__banner game-room__banner--error">{moveError}</div>}
+            <MoveHistory moves={moveHistory} />
+          </>
+        }
+        leftBowl={
+          <StoneBowl color="black" side="left" label="Hũ quân Đen" total={STONES_PER_BOWL} remaining={Math.max(0, STONES_PER_BOWL - stonesUsedBlack)} />
+        }
+        rightBowl={
+          <StoneBowl color="white" side="right" label="Hũ quân Trắng" total={STONES_PER_BOWL} remaining={Math.max(0, STONES_PER_BOWL - stonesUsedWhite)} />
+        }
+        topBar={
+          <PlayerCard
+            color="white"
+            label={match.players.white?.displayName ?? "Trắng"}
+            capturedCount={match.capturedWhite}
+            isActive={!waitingForOpponent && match.status === "ongoing" && match.currentPlayer === "white"}
+          />
+        }
+        bottomBar={
+          <PlayerCard
+            color="black"
+            label={match.players.black?.displayName ?? "Đen"}
+            capturedCount={match.capturedBlack}
+            isActive={!waitingForOpponent && match.status === "ongoing" && match.currentPlayer === "black"}
+          />
+        }
+        board={
+          <Board
+            board={match.board}
+            boardSize={match.boardSize}
+            onPointClick={(position) => playMove(position)}
+            disabled={boardDisabled}
+            lastMove={match.lastMove}
+            floatingScores={floatingScores}
+          />
+        }
+        winRateBar={
+          <div className="game-room__info-panel">
+            <div className="game-room__info-title">Trận đấu trực tuyến</div>
+            <div className="game-room__info-note">Không có gợi ý AI ở chế độ PvP Online.</div>
+          </div>
+        }
+        controlPanel={
+          match.status === "ongoing" && myColor ? (
+            <button
+              className={`game-room__resign-btn ${confirmingResign ? "game-room__resign-btn--confirm" : ""}`}
+              onClick={handleResign}
+            >
+              {confirmingResign ? "Bấm lần nữa để xác nhận xin thua" : "Xin thua"}
+            </button>
+          ) : (
+            <button className="game-room__resign-btn" onClick={() => navigate("/online")}>
+              Về sảnh chờ
+            </button>
+          )
+        }
+      />
+
+      {matchId && (
+        <ChatBox
+          matchId={matchId}
+          currentUser={user}
+          userColor={myColor}
+          opponentName={opponent?.displayName}
+          autoOpenOnStart={true}
         />
-      }
-      bottomBar={
-        <PlayerCard
-          color="black"
-          label={match.players.black?.displayName ?? "Đen"}
-          capturedCount={match.capturedBlack}
-          isActive={!waitingForOpponent && match.status === "ongoing" && match.currentPlayer === "black"}
-        />
-      }
-      board={
-        <Board
-          board={match.board}
-          boardSize={match.boardSize}
-          onPointClick={(position) => playMove(position)}
-          disabled={boardDisabled}
-          lastMove={match.lastMove}
-          floatingScores={floatingScores}
-        />
-      }
-      winRateBar={
-        <div className="game-room__info-panel">
-          <div className="game-room__info-title">Trận đấu trực tuyến</div>
-          <div className="game-room__info-note">Không có gợi ý AI ở chế độ PvP Online.</div>
-        </div>
-      }
-      controlPanel={
-        match.status === "ongoing" && myColor ? (
-          <button
-            className={`game-room__resign-btn ${confirmingResign ? "game-room__resign-btn--confirm" : ""}`}
-            onClick={handleResign}
-          >
-            {confirmingResign ? "Bấm lần nữa để xác nhận xin thua" : "Xin thua"}
-          </button>
-        ) : (
-          <button className="game-room__resign-btn" onClick={() => navigate("/online")}>
-            Về sảnh chờ
-          </button>
-        )
-      }
-    />
+      )}
+
+      <ConfirmLeaveModal
+        open={showLeaveConfirm}
+        title="Xác nhận rời phòng đấu"
+        message={
+          <>
+            Trận đấu trực tuyến đang diễn ra. Nếu bạn rời phòng lúc này, bạn sẽ bị tính là{" "}
+            <strong className="text-danger">ĐẦU HÀNG (XỬ THUA)</strong>.
+            <br /><br />
+            Bạn có chắc chắn muốn rời đi không?
+          </>
+        }
+        confirmText="Rời phòng (Chịu thua)"
+        cancelText="Tiếp tục thi đấu"
+        isDanger={true}
+        onConfirm={confirmLeave}
+        onCancel={() => setShowLeaveConfirm(false)}
+      />
+    </>
   );
-}
+}

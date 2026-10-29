@@ -170,3 +170,93 @@ body {
   border-color: var(--color-accent-jade);
   color: var(--color-accent-jade);
 }
+
+/* Banner thông báo lỗi kết nối AI & hỗ trợ thử lại / bỏ lượt */
+.ai-error-banner {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(36, 20, 22, 0.95);
+  border: 1px solid #f87171;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.65);
+  border-radius: var(--radius-md, 8px);
+  backdrop-filter: blur(8px);
+}
+
+.ai-error-banner__content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fca5a5;
+  font-size: 13px;
+  min-width: 0;
+}
+
+.ai-error-banner__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-error-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ai-error-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+
+.ai-error-btn--retry {
+  background: var(--color-accent-jade, #10b981);
+  color: #064e3b;
+}
+
+.ai-error-btn--retry:hover {
+  filter: brightness(1.1);
+}
+
+.ai-error-btn--pass {
+  background: #f59e0b;
+  color: #78350f;
+}
+
+.ai-error-btn--pass:hover {
+  filter: brightness(1.1);
+}
+
+.ai-error-btn--dismiss {
+  background: rgba(255, 255, 255, 0.1);
+  color: #9ca3af;
+  padding: 6px 10px;
+}
+
+.ai-error-btn--dismiss:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+@media (max-width: 600px) {
+  .app-header {
+    gap: var(--space-sm);
+  }
+  .app-header__right-controls {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

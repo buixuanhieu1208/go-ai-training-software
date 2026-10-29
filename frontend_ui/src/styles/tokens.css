@@ -63,3 +63,32 @@
   --space-lg: 24px;
   --space-xl: 40px;
 }
+
+/* ==========================================================================
+   CHẾ ĐỘ SÁNG (LIGHT THEME) — Thiết kế ấm áp giấy dó & gỗ sáng
+   ========================================================================== */
+[data-theme="light"] {
+  /* ---- Nền & lớp (surfaces) ---- */
+  --color-bg: #f5f2ea;
+  --color-panel: #ffffff;
+  --color-panel-raised: #fbf9f4;
+  --color-border: #ded8cb;
+  --color-border-subtle: #eae5da;
+
+  /* ---- Chữ (typography) ---- */
+  --color-text-primary: #1f1d17;
+  --color-text-secondary: #5e594d;
+  --color-text-muted: #8c8574;
+
+  /* ---- Điểm nhấn (accents) ---- */
+  --color-accent-jade: #1f8a55;
+  --color-accent-jade-dim: rgba(31, 138, 85, 0.14);
+  --color-accent-amber: #b87a14;
+  --color-accent-red: #c93b37;
+  --color-accent-blue: #2a6cb8;
+
+  /* ---- Bóng đổ ---- */
+  --shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.05), 0 8px 24px rgba(0, 0, 0, 0.07);
+  --shadow-stone: 0 1px 3px rgba(0, 0, 0, 0.25), 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+

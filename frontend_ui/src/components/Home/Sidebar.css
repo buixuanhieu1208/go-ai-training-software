@@ -272,3 +272,15 @@
     display: none;
   }
 }
+
+@media (max-width: 600px) {
+  .sidebar {
+    width: 56px;
+  }
+  .sidebar__brand {
+    padding: 12px 4px;
+  }
+  .sidebar__item {
+    padding: 10px 0;
+  }
+}

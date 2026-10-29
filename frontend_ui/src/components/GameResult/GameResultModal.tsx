@@ -56,6 +56,12 @@ export interface GameResultModalProps {
   onReviewGame?: () => void;
   /** Tên người thắng (hiển thị thay vì Quân Đen/Trắng) */
   winnerName?: string;
+  /** Có phải trận đấu với AI không */
+  isAiMatch?: boolean;
+  /** Độ khó AI: "easy" | "medium" | "hard" */
+  aiDifficulty?: "easy" | "medium" | "hard";
+  /** Callback khi bấm "Xem Bảng Xếp Hạng" */
+  onViewLeaderboard?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -95,6 +101,9 @@ export const GameResultModal: React.FC<GameResultModalProps> = ({
   onBackToMenu,
   onReviewGame,
   winnerName,
+  isAiMatch = false,
+  aiDifficulty,
+  onViewLeaderboard,
 }) => {
   const [copiedSgf, setCopiedSgf] = useState(false);
   const [extractedCount, setExtractedCount] = useState<number | null>(null);
@@ -155,7 +164,16 @@ export const GameResultModal: React.FC<GameResultModalProps> = ({
     <div className="game-result-overlay" role="dialog" aria-modal="true">
       <div className="game-result-modal">
         {/* ---- Tiêu đề ---- */}
-        <div className="game-result-trophy">🏆</div>
+        <div className="game-result-trophy">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-amber)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+            <path d="M4 22h16" />
+            <path d="M10 14.66V17c0 .55-.45 1-1 1H7" />
+            <path d="M14 14.66V17c0 .55.45 1 1 1h2" />
+            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+          </svg>
+        </div>
         <h2
           className={`game-result-winner ${
             isBlackWin ? "game-result-winner--black" : "game-result-winner--white"
@@ -177,8 +195,8 @@ export const GameResultModal: React.FC<GameResultModalProps> = ({
           <thead>
             <tr>
               <th />
-              <th>⚫ Đen</th>
-              <th>⚪ Trắng</th>
+              <th>Quân Đen</th>
+              <th>Quân Trắng</th>
             </tr>
           </thead>
           <tbody>
@@ -239,7 +257,7 @@ export const GameResultModal: React.FC<GameResultModalProps> = ({
               onClick={handleDownloadSgf}
               title="Tải file .sgf về máy"
             >
-              📥 Tải kỳ phổ (.SGF)
+              Tải kỳ phổ (.SGF)
             </button>
             <button
               type="button"
@@ -247,7 +265,7 @@ export const GameResultModal: React.FC<GameResultModalProps> = ({
               onClick={handleCopySgf}
               title="Sao chép văn bản SGF"
             >
-              {copiedSgf ? "✓ Đã sao chép" : "📋 Sao chép SGF"}
+              {copiedSgf ? "Đã sao chép" : "Sao chép SGF"}
             </button>
           </div>
         </div>
@@ -260,13 +278,98 @@ export const GameResultModal: React.FC<GameResultModalProps> = ({
             onClick={handleExtractPuzzles}
           >
             {extractedCount !== null
-              ? `✓ Đã tạo ${extractedCount} bài tập rút kinh nghiệm trong Tsumego Hub!`
-              : "🎯 Trích xuất bài tập Tsumego từ sai lầm trong ván đấu"}
+              ? `Đã tạo ${extractedCount} bài tập rút kinh nghiệm trong Tsumego Hub!`
+              : "Trích xuất bài tập Tsumego từ sai lầm trong ván đấu"}
           </button>
         </div>
 
+        {/* ---- Banner vinh danh diệt AI ---- */}
+        {isAiMatch && winnerName === "Bạn" && (
+          <div
+            className="game-result-ai-victory-banner"
+            style={{
+              background: "linear-gradient(135deg, rgba(234, 179, 8, 0.16) 0%, rgba(245, 158, 11, 0.06) 100%)",
+              border: "1px solid rgba(234, 179, 8, 0.4)",
+              borderRadius: "12px",
+              padding: "14px 16px",
+              margin: "12px 0 16px 0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "12px",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", textAlign: "left" }}>
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: "50%",
+                  background: "rgba(234, 179, 8, 0.2)",
+                  color: "#f59e0b",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M6 9H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2" />
+                  <path d="M18 9h2a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2" />
+                  <path d="M4 22h16" />
+                  <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                  <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                  <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+                </svg>
+              </div>
+              <div>
+                <div style={{ fontSize: "14px", fontWeight: 700, color: "#facc15" }}>
+                  Chiến tích đã được lưu vào Bảng Xếp Hạng!
+                </div>
+                <div style={{ fontSize: "12px", color: "var(--color-text-subtle)", marginTop: "2px" }}>
+                  Thắng AI chế độ {boardSize}×{boardSize} ({aiDifficulty === "hard" ? "Khó" : aiDifficulty === "medium" ? "Trung bình" : "Dễ"}).
+                </div>
+              </div>
+            </div>
+            {onViewLeaderboard && (
+              <button
+                type="button"
+                onClick={onViewLeaderboard}
+                style={{
+                  padding: "8px 16px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  borderRadius: "8px",
+                  background: "linear-gradient(135deg, #eab308 0%, #ca8a04 100%)",
+                  color: "#0f172a",
+                  border: "none",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Xem Bảng Xếp Hạng
+              </button>
+            )}
+          </div>
+        )}
+
         {/* ---- Nút hành động chính ---- */}
         <div className="game-result-actions">
+          {onViewLeaderboard && (
+            <button
+              className="game-result-btn game-result-btn--leaderboard"
+              onClick={onViewLeaderboard}
+              type="button"
+              style={{
+                background: "rgba(234, 179, 8, 0.15)",
+                color: "#facc15",
+                borderColor: "rgba(234, 179, 8, 0.4)",
+              }}
+            >
+              Bảng xếp hạng
+            </button>
+          )}
           {onReviewGame && (
             <button
               className="game-result-btn game-result-btn--review"
@@ -274,7 +377,7 @@ export const GameResultModal: React.FC<GameResultModalProps> = ({
               type="button"
               style={{ background: "rgba(62, 207, 142, 0.15)", color: "var(--color-accent-jade)", borderColor: "var(--color-accent-jade)" }}
             >
-              🔍 Phân tích ván đấu (Review)
+              Phân tích ván đấu
             </button>
           )}
           <button
@@ -282,14 +385,14 @@ export const GameResultModal: React.FC<GameResultModalProps> = ({
             onClick={onPlayAgain}
             type="button"
           >
-            ↻ Chơi lại
+            Chơi lại
           </button>
           <button
             className="game-result-btn game-result-btn--secondary"
             onClick={onBackToMenu}
             type="button"
           >
-            ← Về menu
+            Về menu
           </button>
         </div>
       </div>

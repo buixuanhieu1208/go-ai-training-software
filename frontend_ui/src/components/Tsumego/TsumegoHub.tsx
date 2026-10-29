@@ -285,7 +285,7 @@ export function TsumegoHub() {
             </div>
           </div>
           <button type="button" className="adaptive-banner__btn" onClick={handleAdaptiveNext}>
-            🚀 Giải bài AI đề xuất
+            Giải bài AI đề xuất
           </button>
         </div>
       )}

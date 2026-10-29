@@ -112,6 +112,16 @@
   }
 }
 
+@media (max-width: 600px) {
+  .profile-container {
+    padding: var(--space-sm);
+    gap: var(--space-md);
+  }
+  .profile-header-nav {
+    padding: var(--space-sm) var(--space-md);
+  }
+}
+
 /* Sidebar / Left Column */
 .profile-card {
   background: var(--color-panel);

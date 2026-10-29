@@ -75,3 +75,10 @@
     max-height: none;
   }
 }
+
+@media (max-width: 640px) {
+  .online-hub {
+    padding: var(--space-sm);
+    gap: var(--space-sm);
+  }
+}

@@ -369,7 +369,7 @@ export function TsumegoPractice({
                   onClick={onAdaptiveNext}
                   title={adaptiveReason || "AI tự động chọn bài tập khớp thực lực tiếp theo"}
                 >
-                  🚀 Bài AI đề xuất tiếp theo
+                  Bài AI đề xuất tiếp theo
                 </button>
               ) : (
                 hasNext && onNext && (

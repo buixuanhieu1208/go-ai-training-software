@@ -11,25 +11,32 @@ async function fetchAnalysis(
   board: BoardMatrix,
   currentPlayer: "black" | "white"
 ): Promise<AiAnalysisResult> {
-  const res = await fetch("http://localhost:8000/api/v1/analyze", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      board: board.map((row) =>
-        row.map((cell) => (cell === "black" ? 1 : cell === "white" ? -1 : 0))
-      ),
-      current_player: currentPlayer === "black" ? 1 : -1,
-    }),
-  });
-  if (!res.ok) {
-    console.error("Lỗi khi phân tích bằng AI:", await res.text());
+  try {
+    const res = await fetch("http://localhost:8000/api/v1/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        board: board.map((row) =>
+          row.map((cell) => (cell === "black" ? 1 : cell === "white" ? -1 : 0))
+        ),
+        current_player: currentPlayer === "black" ? 1 : -1,
+      }),
+    });
+    if (!res.ok) {
+      return {
+        policyHints: [],
+        valueEstimate: { blackWinRate: 0.5 },
+        thinkingTimeMs: 0,
+      };
+    }
+    return await res.json();
+  } catch {
     return {
       policyHints: [],
       valueEstimate: { blackWinRate: 0.5 },
       thinkingTimeMs: 0,
     };
   }
-  return res.json();
 }
 
 export interface UseAiAnalysisReturn {

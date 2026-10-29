@@ -70,3 +70,23 @@ export function sendMatchInvite(
 export function listenIncomingMatchInvites(uid: string, onChange: (invites: any[]) => void): () => void;
 export function acceptMatchInvite(invite: any, acceptingUser: PlayerInfoInput): Promise<string>;
 export function declineMatchInvite(inviteId: string): Promise<void>;
+
+// ---- Realtime match chat ----
+export interface MatchChatMessage {
+  id: string;
+  senderUid: string;
+  senderName: string;
+  senderColor?: "black" | "white" | string;
+  text: string;
+  createdAt?: any;
+}
+
+export function sendMatchMessage(
+  matchId: string,
+  message: { id?: string; senderUid: string; senderName: string; senderColor?: string; text: string }
+): Promise<MatchChatMessage | null>;
+
+export function listenMatchMessages(
+  matchId: string,
+  onChange: (messages: MatchChatMessage[]) => void
+): () => void;
